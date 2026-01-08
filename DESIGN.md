@@ -93,8 +93,8 @@ A production-grade AI assistant for Indian Laws, featuring a "Smart Parser" for 
 | Act | Replaces | Source | Parser Mode |
 | :--- | :--- | :--- | :--- |
 | **BNS** (Act 45/2023) | IPC, 1860 | [MHA PDF](https://www.mha.gov.in/sites/default/files/250883_english_01042024.pdf) | **Narrative** (Illustrations) |
-| **BNSS** (Act 46/2023) | CrPC, 1973 | [MHA Gazette](https://egazette.gov.in/) / [India Code](https://www.indiacode.nic.in/) | **Strict** + **Schedule** |
-| **BSA** (Act 47/2023) | Evidence Act, 1872 | [MHA Gazette](https://egazette.gov.in/) / [India Code](https://www.indiacode.nic.in/) | **Narrative** |
+| **BNSS** (Act 46/2023) | CrPC, 1973 | (https://www.mha.gov.in/sites/default/files/2024-04/250884_2_english_01042024.pdf) | **Strict** + **Schedule** |
+| **BSA** (Act 47/2023) | Evidence Act, 1872 | (https://www.mha.gov.in/sites/default/files/2024-04/250882_english_01042024_0.pdf) | **Narrative** |
 
 ### Additional Sources
 
