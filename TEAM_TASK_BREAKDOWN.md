@@ -1,6 +1,6 @@
 # Legal Assistant - Team Task Categorization 
 
-> **Project**: AI-Powered Legal Research & Petition Drafting Platform  
+> **Project**: AI-Powered Legal Assistant 
 > **Team Size**: 9 Members  
 > **Last Updated**: January 12, 2026
 
