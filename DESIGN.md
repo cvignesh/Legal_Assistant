@@ -86,6 +86,84 @@ A production-grade AI assistant for Indian Laws, featuring a "Smart Parser" for 
 
 ---
 
+## Design Decisions (Team Review - Resolved)
+
+> [!IMPORTANT]
+> The following decisions were finalized based on team review feedback.
+
+### D1: PII & Sensitive Data Handling
+
+**Concern**: Judicial data may contain personally identifiable information (PII), juvenile cases, sexual offences, etc. that require restricted access.
+
+**Decision**: Implement dual-storage approach with access controls.
+
+| Storage | Content | Access |
+| :--- | :--- | :--- |
+| **Original Store** | Full unredacted judgment text | Admin/Privileged roles only |
+| **Vector DB** | Sanitized/anonymized chunks | All authenticated users |
+
+**Implementation Plan**:
+1. **Ingestion Pipeline**: Detect sensitive content (regex patterns for names, addresses, case numbers)
+2. **Sanitization**: Replace PII with placeholders (`[PETITIONER]`, `[VICTIM]`, `[ADDRESS]`)
+3. **Access Control**: Role-based access via MongoDB field-level security
+4. **Audit Trail**: Log all access to original sensitive documents
+
+**Enhancements**:
+- **Field-Level Encryption**: Use MongoDB Client-Side Field Level Encryption (CSFLE) for original documents
+- **Sensitive Case Categories**: Auto-detect and flag:
+  - POCSO Act cases (Protection of Children from Sexual Offences)
+  - Juvenile cases
+  - Cases marked "Identity Protected" or "In-Camera Proceedings"
+- **Auto-Exclude Rule**: POCSO/Juvenile cases → **Never store in public vector DB**
+- **IAM Integration**: Support Azure AD / Okta for enterprise SSO
+
+---
+
+### D2: Hallucination Prevention & RAG Quality Control
+
+**Concern**: Legal AI must be accurate. System should NOT answer if retrieved context is insufficient.
+
+**Decision**: Implement confidence thresholds at multiple stages.
+
+```mermaid
+flowchart TD
+    A["User Query"] --> B["Hybrid Search"]
+    B --> C["Top-K Chunks"]
+    C --> D{"Min Relevance Score >= 0.7?"}
+    D -- No --> E["REFUSE: Insufficient context"]
+    D -- Yes --> F["Reranker"]
+    F --> G{"Top chunk score >= 0.8?"}
+    G -- No --> E
+    G -- Yes --> H["Send to LLM"]
+    H --> I["Generate Answer with Citations"]
+```
+
+**Threshold Configuration** (in `.env`):
+
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `RAG_MIN_VECTOR_SCORE` | Minimum vector similarity | `0.6` |
+| `RAG_MIN_RERANK_SCORE` | Minimum reranker score | `0.7` |
+| `RAG_MIN_CHUNKS_REQUIRED` | Minimum relevant chunks needed | `2` |
+| `RAG_REFUSE_MESSAGE` | Message when context insufficient | `"I don't have enough information..."` |
+
+**LLM Prompt Safeguard**:
+```
+IMPORTANT: Only answer based on the provided context. 
+If the context does not contain relevant information, respond with:
+"I don't have sufficient information in my knowledge base to answer this question accurately."
+Do NOT make up information.
+```
+
+**Enhancements**:
+- **Chunk Diversity Check**: Ensure retrieved chunks come from at least 2 different documents (avoid single-source bias)
+- **Knowledge Gap Logging**: Log all refused queries for analysis → identify missing content areas
+- **Confidence Disclaimer UI**: When score is between 0.7-0.85, show:
+  > *"This response is based on limited relevant context. Please verify with original sources."*
+- **Citation Verification**: Cross-check that cited sections actually exist in the database
+
+---
+
 ## Data Sources
 
 ### Primary Sources
