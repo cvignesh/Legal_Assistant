@@ -1,11 +1,6 @@
 # Legal Assistant
 
 An AI-powered assistant for **Indian Laws, Acts & Case Law (Judgments)** built with RAG (Retrieval-Augmented Generation).
-
-![Status](https://img.shields.io/badge/Status-In%20Development-yellow)
-![Python](https://img.shields.io/badge/Python-3.10+-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
-
 ---
 
 ## 🎯 Features
@@ -136,13 +131,3 @@ Legal_Assistant/
 | Hallucination Rate | ≤ 0.1 |
 
 ---
-
-## 🤝 Contributing
-
-Contributions welcome! Please read the design doc before submitting PRs.
-
----
-
-## 📄 License
-
-MIT License - See [LICENSE](LICENSE) for details.
