@@ -1,6 +1,6 @@
 # Legal Assistant - Implementation Plan
 
-A production-grade AI assistant for Indian Laws, featuring a "Smart Parser" for legal documents, Hybrid Search with Reranking, and a React-based UI.
+A production-grade AI assistant for **Indian Laws, Acts & Case Law (Judgments)**, featuring a Smart Parser, Hybrid Search with Reranking, Judgment Analysis (Viability Predictor, Argument Miner, Clause Search), and a React-based UI.
 
 ## Prerequisites & Dependencies
 
