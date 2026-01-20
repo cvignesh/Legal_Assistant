@@ -1,0 +1,40 @@
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.core.config import settings
+from app.db.mongo import mongo
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    print("Starting up...")
+    mongo.connect()
+    yield
+    # Shutdown
+    print("Shutting down...")
+    mongo.close()
+
+app = FastAPI(
+    title="Legal Assistant API",
+    version="1.0.0",
+    description="Backend for PDF Parsing, Embedding, and RAG",
+    lifespan=lifespan
+)
+
+# CORS Config
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok", "db": settings.MONGO_DB}
+
+# Include Routers
+from app.api.routes import ingestion
+app.include_router(ingestion.router, prefix="/api/ingest", tags=["Ingestion"])

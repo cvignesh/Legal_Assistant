@@ -999,7 +999,239 @@ You must create **two indexes** in MongoDB Atlas UI:
     - **Theme**: Enterprise Blue (`#1976d2`), Roboto font.
 
 
+## Backend API Endpoints
+
+### Ingestion API
+
+Base URL: `http://localhost:8000/api/ingest`
+
+#### 1. Health Check
+```http
+GET /health
+```
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "service": "Legal Assistant Ingestion API"
+}
+```
+
+---
+
+#### 2. Upload PDF
+```http
+POST /api/ingest/upload
+Content-Type: multipart/form-data
+```
+
+**Request:**
+- `file`: PDF file (max 25MB)
+
+**Response:**
+```json
+{
+  "job_id": "uuid-string",
+  "filename": "BNS.pdf",
+  "status": "queued",
+  "message": "PDF uploaded successfully. Parsing started in background."
+}
+```
+
+**Status Codes:**
+- `200`: Success
+- `400`: Invalid file type or size
+- `500`: Server error
+
+---
+
+#### 3. List All Jobs
+```http
+GET /api/ingest/jobs
+```
+
+**Response:**
+```json
+[
+  {
+    "job_id": "uuid-1",
+    "filename": "BNS.pdf",
+    "status": "completed",
+    "created_at": "2026-01-20T12:00:00Z"
+  },
+  {
+    "job_id": "uuid-2",
+    "filename": "BNSS.pdf",
+    "status": "preview_ready",
+    "created_at": "2026-01-20T12:05:00Z"
+  }
+]
+```
+
+---
+
+#### 4. Get Job Status
+```http
+GET /api/ingest/{job_id}/status
+```
+
+**Response:**
+```json
+{
+  "job_id": "uuid-string",
+  "filename": "BNS.pdf",
+  "status": "preview_ready",
+  "created_at": "2026-01-20T12:00:00Z",
+  "error": null
+}
+```
+
+**Possible Status Values:**
+- `queued`: Job created, waiting to start
+- `parsing`: PDF being parsed
+- `preview_ready`: Parsing complete, ready for review
+- `approved`: User confirmed, ready for indexing
+- `indexing`: Generating embeddings and storing in MongoDB
+- `completed`: Successfully indexed
+- `failed`: Error occurred (check `error` field)
+
+---
+
+#### 5. Get Preview
+```http
+GET /api/ingest/{job_id}/preview
+```
+
+**Response:**
+```json
+{
+  "job_id": "uuid-string",
+  "filename": "BNS.pdf",
+  "act_name": "Bharatiya Nyaya Sanhita, 2023",
+  "act_short": "BNS",
+  "parsing_mode": "NARRATIVE",
+  "total_pages": 200,
+  "total_chunks": 358,
+  "chunks": [
+    {
+      "chunk_id": "BNS_Sec_1",
+      "text_for_embedding": "[Bharatiya Nyaya Sanhita, 2023] > [Chapter I - Preliminary] > [Section 1 - Short title, extent and commencement]\n\n(1) This Act may be called the Bharatiya Nyaya Sanhita, 2023...",
+      "raw_content": "(1) This Act may be called the Bharatiya Nyaya Sanhita, 2023...",
+      "metadata": {
+        "act_name": "Bharatiya Nyaya Sanhita, 2023",
+        "act_short": "BNS",
+        "chapter": "Chapter I - Preliminary",
+        "section_id": "1",
+        "section_title": "Short title, extent and commencement",
+        "chunk_type": "Section",
+        "has_illustration": false,
+        "has_explanation": false,
+        "has_proviso": false,
+        "page_start": 1,
+        "page_end": 1
+      }
+    }
+  ]
+}
+```
+
+---
+
+#### 6. Confirm Ingestion
+```http
+POST /api/ingest/{job_id}/confirm
+```
+
+**Description:** Triggers embedding generation and MongoDB insertion.
+
+**Response:**
+```json
+{
+  "job_id": "uuid-string",
+  "status": "indexing",
+  "message": "Ingestion confirmed. Embedding and indexing started."
+}
+```
+
+**What Happens:**
+1. Extracts `text_for_embedding` from all chunks
+2. Calls Mistral API to generate 1024-dim embeddings (batched)
+3. Inserts chunks + embeddings into MongoDB
+4. Updates job status to `completed`
+
+---
+
+### MongoDB Schema
+
+**Collection:** `legal_chunks_v1`
+
+**Document Structure:**
+```json
+{
+  "_id": "BNS_Sec_103",
+  "chunk_id": "BNS_Sec_103",
+  "text_for_embedding": "[Bharatiya Nyaya Sanhita, 2023] > [Chapter VI - Of Offences Affecting the Human Body] > [Section 103 - Murder]\n\nWhoever commits murder shall be punished with...",
+  "raw_content": "Whoever commits murder shall be punished with...",
+  "embedding": [0.123, -0.045, 0.678, ...],  // 1024 floats
+  "metadata": {
+    "act_name": "Bharatiya Nyaya Sanhita, 2023",
+    "act_short": "BNS",
+    "chapter": "Chapter VI - Of Offences Affecting the Human Body",
+    "section_id": "103",
+    "section_title": "Murder",
+    "chunk_type": "Section",
+    "has_illustration": false,
+    "has_explanation": false,
+    "has_proviso": false,
+    "page_start": 45,
+    "page_end": 45
+  },
+  "created_at": "2026-01-20T12:10:00Z"
+}
+```
+
+**Indexes:**
+- `_id`: Primary key (deterministic, idempotent)
+- `embedding`: Vector index for similarity search (to be created)
+- `metadata.act_short`: Filter by Act
+- `metadata.section_id`: Lookup by section
+
+---
+
+### CLI Batch Ingestion
+
+For bulk processing without UI:
+
+```bash
+python scripts/ingest_batch.py Sample_pdf/BNS.pdf
+```
+
+**Features:**
+- Automatic parsing
+- Automatic embedding
+- Automatic MongoDB insertion
+- Progress reporting
+- Error handling
+
+**Output:**
+```
+Processing: BNS.pdf
+✓ Parsed: 358 chunks
+✓ Embedded: 358 vectors
+✓ Inserted: 358 documents
+✓ Completed in 45.2s
+
+Summary:
+  Success: 1
+  Failed: 0
+  Total Chunks: 358
+```
+
+---
+
 ## Verification Plan
+
 
 ### Automated Tests
 - **Parser Unit Tests**: Create `tests/test_parser.py` with sample text blocks to verify:
