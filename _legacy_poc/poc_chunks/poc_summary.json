@@ -1,0 +1,86 @@
+{
+  "total_pdfs": 10,
+  "total_chunks": 1450,
+  "results": [
+    {
+      "filename": "BNS.pdf",
+      "act_name": "Bharatiya Nyaya Sanhita, 2023",
+      "parsing_mode": "NARRATIVE",
+      "total_pages": 102,
+      "total_chunks": 358,
+      "errors": 0
+    },
+    {
+      "filename": "BNSS.pdf",
+      "act_name": "Bharatiya Nagarik Suraksha Sanhita, 2023",
+      "parsing_mode": "NARRATIVE",
+      "total_pages": 249,
+      "total_chunks": 527,
+      "errors": 0
+    },
+    {
+      "filename": "BSA.pdf",
+      "act_name": "Bharatiya Sakshya Adhiniyam, 2023",
+      "parsing_mode": "SCHEDULE",
+      "total_pages": 47,
+      "total_chunks": 170,
+      "errors": 0
+    },
+    {
+      "filename": "engaadhaar_Central_act.pdf",
+      "act_name": "The Aadhaar Act, 2016",
+      "parsing_mode": "NARRATIVE",
+      "total_pages": 25,
+      "total_chunks": 69,
+      "errors": 0
+    },
+    {
+      "filename": "indiantelegraphact_1885.pdf",
+      "act_name": "INDIAN TELEGRAPH Act, 1885",
+      "parsing_mode": "SCHEDULE",
+      "total_pages": 15,
+      "total_chunks": 45,
+      "errors": 0
+    },
+    {
+      "filename": "informatio_act_central.pdf",
+      "act_name": "INFORMATION TECHNOLOGY Act, 2000",
+      "parsing_mode": "NARRATIVE",
+      "total_pages": 41,
+      "total_chunks": 125,
+      "errors": 0
+    },
+    {
+      "filename": "it_act_2000_updated.pdf",
+      "act_name": "INFORMATION TECHNOLOGY Act, 2000",
+      "parsing_mode": "NARRATIVE",
+      "total_pages": 36,
+      "total_chunks": 125,
+      "errors": 0
+    },
+    {
+      "filename": "the_tamil_nadu_laws_(special_provisions)_act,_2007.pdf",
+      "act_name": "Tamil Nadu Laws (Special Provisions) Act",
+      "parsing_mode": "NARRATIVE",
+      "total_pages": 7,
+      "total_chunks": 7,
+      "errors": 0
+    },
+    {
+      "filename": "TN_money_lenders_act_state.pdf",
+      "act_name": "Tamil Nadu Money-Lenders Act",
+      "parsing_mode": "NARRATIVE",
+      "total_pages": 24,
+      "total_chunks": 15,
+      "errors": 0
+    },
+    {
+      "filename": "TN_Motor_Act_spl_state.pdf",
+      "act_name": "Tamil Nadu Motor Vehicles (Special Provisions) Act",
+      "parsing_mode": "NARRATIVE",
+      "total_pages": 5,
+      "total_chunks": 9,
+      "errors": 0
+    }
+  ]
+}

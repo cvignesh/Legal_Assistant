@@ -1,0 +1,194 @@
+[
+  {
+    "filename": "BNS.pdf",
+    "recommended_mode": "NARRATIVE",
+    "reason": "Illustrations:40, Explanations:25",
+    "has_spacing_issues": true,
+    "spacing_issues_sample_pages": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "stats": {
+      "total_pages": 102,
+      "chapters": 0,
+      "sections": 3,
+      "illustrations": 40,
+      "explanations": 25,
+      "provisos": 2,
+      "schedules": 0,
+      "has_forms": false,
+      "has_schedule_table": false
+    }
+  },
+  {
+    "filename": "BNSS.pdf",
+    "recommended_mode": "NARRATIVE",
+    "reason": "Illustrations:0, Explanations:8",
+    "has_spacing_issues": false,
+    "spacing_issues_sample_pages": [],
+    "stats": {
+      "total_pages": 249,
+      "chapters": 7,
+      "sections": 27,
+      "illustrations": 0,
+      "explanations": 8,
+      "provisos": 20,
+      "schedules": 4,
+      "has_forms": true,
+      "has_schedule_table": false
+    }
+  },
+  {
+    "filename": "BSA.pdf",
+    "recommended_mode": "NARRATIVE",
+    "reason": "Illustrations:28, Explanations:20",
+    "has_spacing_issues": true,
+    "spacing_issues_sample_pages": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "stats": {
+      "total_pages": 47,
+      "chapters": 0,
+      "sections": 23,
+      "illustrations": 28,
+      "explanations": 20,
+      "provisos": 1,
+      "schedules": 0,
+      "has_forms": false,
+      "has_schedule_table": false
+    }
+  },
+  {
+    "filename": "TN_Motor_Act_spl_state.pdf",
+    "recommended_mode": "NARRATIVE",
+    "reason": "Default - no strong pattern detected",
+    "has_spacing_issues": false,
+    "spacing_issues_sample_pages": [],
+    "stats": {
+      "total_pages": 5,
+      "chapters": 7,
+      "sections": 7,
+      "illustrations": 0,
+      "explanations": 0,
+      "provisos": 1,
+      "schedules": 0,
+      "has_forms": false,
+      "has_schedule_table": false
+    }
+  },
+  {
+    "filename": "TN_money_lenders_act_state.pdf",
+    "recommended_mode": "STRICT",
+    "reason": "Provisos:3 (moderate)",
+    "has_spacing_issues": false,
+    "spacing_issues_sample_pages": [],
+    "stats": {
+      "total_pages": 24,
+      "chapters": 1,
+      "sections": 10,
+      "illustrations": 0,
+      "explanations": 0,
+      "provisos": 3,
+      "schedules": 0,
+      "has_forms": false,
+      "has_schedule_table": false
+    }
+  },
+  {
+    "filename": "engaadhaar_Central_act.pdf",
+    "recommended_mode": "NARRATIVE",
+    "reason": "Illustrations:0, Explanations:8",
+    "has_spacing_issues": false,
+    "spacing_issues_sample_pages": [],
+    "stats": {
+      "total_pages": 25,
+      "chapters": 17,
+      "sections": 139,
+      "illustrations": 0,
+      "explanations": 8,
+      "provisos": 12,
+      "schedules": 0,
+      "has_forms": false,
+      "has_schedule_table": false
+    }
+  },
+  {
+    "filename": "indiantelegraphact_1885.pdf",
+    "recommended_mode": "SCHEDULE",
+    "reason": "Schedules:4, HasTable:False",
+    "has_spacing_issues": false,
+    "spacing_issues_sample_pages": [],
+    "stats": {
+      "total_pages": 15,
+      "chapters": 0,
+      "sections": 131,
+      "illustrations": 0,
+      "explanations": 3,
+      "provisos": 9,
+      "schedules": 4,
+      "has_forms": false,
+      "has_schedule_table": false
+    }
+  },
+  {
+    "filename": "informatio_act_central.pdf",
+    "recommended_mode": "NARRATIVE",
+    "reason": "Illustrations:0, Explanations:7",
+    "has_spacing_issues": false,
+    "spacing_issues_sample_pages": [],
+    "stats": {
+      "total_pages": 41,
+      "chapters": 23,
+      "sections": 225,
+      "illustrations": 0,
+      "explanations": 7,
+      "provisos": 12,
+      "schedules": 8,
+      "has_forms": false,
+      "has_schedule_table": false
+    }
+  },
+  {
+    "filename": "it_act_2000_updated.pdf",
+    "recommended_mode": "NARRATIVE",
+    "reason": "Illustrations:0, Explanations:7",
+    "has_spacing_issues": false,
+    "spacing_issues_sample_pages": [],
+    "stats": {
+      "total_pages": 36,
+      "chapters": 23,
+      "sections": 217,
+      "illustrations": 0,
+      "explanations": 7,
+      "provisos": 12,
+      "schedules": 8,
+      "has_forms": false,
+      "has_schedule_table": false
+    }
+  },
+  {
+    "filename": "the_tamil_nadu_laws_(special_provisions)_act,_2007.pdf",
+    "recommended_mode": "NARRATIVE",
+    "reason": "Default - no strong pattern detected",
+    "has_spacing_issues": false,
+    "spacing_issues_sample_pages": [],
+    "stats": {
+      "total_pages": 7,
+      "chapters": 0,
+      "sections": 14,
+      "illustrations": 0,
+      "explanations": 0,
+      "provisos": 0,
+      "schedules": 0,
+      "has_forms": false,
+      "has_schedule_table": false
+    }
+  }
+]

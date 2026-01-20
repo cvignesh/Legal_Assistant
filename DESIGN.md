@@ -22,8 +22,9 @@ A production-grade AI assistant for **Indian Laws, Acts & Case Law (Judgments)**
 
 | Step | Condition | Action |
 | :---: | :--- | :--- |
-| 1 | Text-selectable PDF | Extract via `pdfplumber` |
+| 1 | Text-selectable PDF | Extract via `PyMuPDF` (fitz) with layout analysis |
 | 2 | Page has < 50 characters | Screenshot → Vision LLM → Extract text |
+| 3 | Margin/Footer Noise | **Clip Page** (remove ~110pt margins) + Regex artifact cleanup |
 
 > [!NOTE]
 > **Deferred Features**: IPC ↔ BNS Bridge Logic (mapping old to new criminal codes) is out of scope for v1.
@@ -219,10 +220,13 @@ Do NOT make up information.
 
 | Tab | Feature | Description |
 | :--- | :--- | :--- |
+| Tab | Feature | Description |
+| :--- | :--- | :--- |
 | **Document Ingestion** | CLI Batch Ingest | `python scripts/ingest_batch.py --folder ./pdfs/` |
 | | UI Upload | Drag & Drop PDFs in browser |
 | | Real-time Progress | Live status (current file, % complete) |
 | | Retry on Failure | Auto-retry with exponential backoff |
+| | **Parse & Preview** | Review chunks before DB commit |
 | **Search** | Keyword/Semantic Search | Hybrid search without LLM |
 | | Autocomplete | Suggest act names/sections as you type |
 | | Filter by Act/Category | Dropdown filters |
@@ -314,28 +318,28 @@ Do NOT make up information.
 
 ## Internal Flow Diagrams
 
-### 1. Document Ingestion Flow
-
+### 1. Ingestion Flow (Dual Mode)
+#### A. UI Flow (Interactive)
 ```mermaid
 flowchart TD
-    A["User Uploads PDF(s)"] --> B{"Is Text Selectable?"}
-    B -- Yes --> C["pdfplumber: Extract Text"]
-    B -- No --> D["Vision LLM: OCR Extraction"]
-    C --> E["Classify Mode"]
-    D --> E
-    E --> F{"Mode Type"}
-    F -- Narrative --> G["Attach Illustrations/Explanations"]
-    F -- Strict --> H["Attach Provisos"]
-    F -- Schedule --> I["Row-by-Row Parsing"]
-    G --> J["Enrich Text"]
-    H --> J
-    I --> J
-    J --> K["Generate Embedding"]
-    K --> L["Upsert to MongoDB"]
-    L --> M["Update Job Status"]
-    M --> N{"More Files?"}
-    N -- Yes --> A
-    N -- No --> O["Job Complete"]
+    A["User Uploads PDF"] --> B["POST /api/ingest/upload"]
+    B --> C["Server: Parse & Stage (Async)"]
+    C --> D["User UI: Preview Staged Chunks"]
+    D --> E{Approve?}
+    E -- No --> F["DELETE /api/ingest/{jobId}"]
+    E -- Yes --> G["POST /api/ingest/{jobId}/confirm"]
+    G --> H["Server: Embed & Upsert to Vector DB"]
+    H --> I["Status: INDEXED"]
+```
+
+#### B. CLI Batch Flow (Automated)
+```mermaid
+flowchart TD
+    A["CLI: python ingest.py --folder ./docs"] --> B["Scan Directory"]
+    B --> C{For Each PDF}
+    C --> D["Parse (Auto-Confirm)"]
+    D --> E["Embed & Upsert"]
+    E --> F["Log Success/Failure"]
 ```
 
 ### 2. Chat Query Flow
@@ -512,6 +516,8 @@ ALGORITHM: ProcessPDF(file_path)
   OUTPUT: List of LegalChunk objects
 
   1. pages ← ExtractTextFromPDF(file_path)
+       [Logic]: Apply Clip Rect (x=30, y=40, w=w-110, h=h-40) to remove margin notes.
+       [Logic]: Filter Digital Signatures (OIDs like '2.5.4.20...') and footer noise.
   
   2. FOR EACH page IN pages:
        IF Length(page.text) < DOC_MIN_CHARS_FOR_OCR THEN
