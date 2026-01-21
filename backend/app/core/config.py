@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     INGESTION_MAX_RETRIES: int = 3
     INGESTION_BATCH_SIZE: int = 10
 
+    # Judgment Processing (Groq)
+    GROQ_API_KEY: str
+    GROQ_MODEL: str = "llama-3.1-8b-instant"
+    GROQ_TEMPERATURE: float = 0.0
+    FUZZY_MATCH_THRESHOLD: float = 0.60
+    JUDGMENT_OUTPUT_DIR: str = "data/judgments"
+
     class Config:
         env_file = ".env"
         case_sensitive = True

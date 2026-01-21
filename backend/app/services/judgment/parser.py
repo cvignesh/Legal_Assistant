@@ -1,27 +1,47 @@
+"""
+Judgment Parser Service - Migrated from POC with Production Enhancements
+
+This module handles PDF parsing of legal judgments using LLM-based atomization.
+Key Features:
+- PyMuPDF text extraction
+- LLM-based atomic chunking (Groq llama-3.1-8b-instant)
+- Anti-hallucination validation with fuzzy matching  (60% threshold)
+- Garbage text filtering (corrupted Hindi/encoding issues)
+- Global metadata extraction (outcome, court, year)
+
+Processing Flow:
+1. Extract text from PDF
+2. Clean and sanitize text (remove URLs, fix line breaks)
+3. Extract global metadata (first + last 3000 chars)
+4. Split into paragraphs
+5. Filter garbage and noise
+6. Atomize each paragraph via LLM
+7. Validate supporting quotes (anti-hallucination)
+8. Create structured chunks with metadata
+"""
 import os
 import re
 import json
-import time
-import fitz  # PyMuPDF
+import asyncio
 from typing import List, Dict, Any
+from pathlib import Path
 from difflib import SequenceMatcher
+import fitz  # PyMuPDF
+
 from langchain_groq import ChatGroq
 from langchain.schema import SystemMessage, HumanMessage
-from dotenv import load_dotenv
 
-# --- SETUP ---
-load_dotenv()
-
-# Hardcoded GROQ API Key
-os.environ["GROQ_API_KEY"] = "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"
-
-# --- CONFIGURATION ---
-# We use Groq (Llama 3.1 8B Instant) for fast & efficient JSON tasks with better rate limits.
-llm = ChatGroq(
-    model="llama-3.1-8b-instant",
-    temperature=0,
-    max_retries=2
+from app.core.config import settings
+from app.services.judgment.models import (
+    JudgmentChunk,
+    JudgmentMetadata,
+    JudgmentResult,
+    SectionType,
+    PartyRole,
+    Outcome,
+    WinningParty
 )
+
 
 # --- PROMPTS ---
 GLOBAL_CONTEXT_PROMPT = """
@@ -69,7 +89,16 @@ Return a strictly valid JSON LIST. Example:
 ]
 """
 
-class LegalPipeline:
+
+class JudgmentParser:
+    def __init__(self):
+        """Initialize parser with LLM client"""
+        self.llm = ChatGroq(
+            api_key=settings.GROQ_API_KEY,
+            model=settings.GROQ_MODEL,
+            temperature=settings.GROQ_TEMPERATURE,
+            max_retries=2
+        )
     
     def extract_text_with_pymupdf(self, file_path: str) -> str:
         """Parses PDF using PyMuPDF (fitz) for speed and accuracy."""
@@ -111,8 +140,11 @@ class LegalPipeline:
         
         return False
     
-    def validate_quote_fuzzy(self, quote: str, paragraph: str, threshold: float = 0.85) -> bool:
+    def validate_quote_fuzzy(self, quote: str, paragraph: str, threshold: float = None) -> bool:
         """Fuzzy matching to handle PDF OCR errors (e.g., 'servicce' vs 'service')."""
+        if threshold is None:
+            threshold = settings.FUZZY_MATCH_THRESHOLD
+            
         if not quote:
             return False
         
@@ -149,7 +181,7 @@ class LegalPipeline:
         keywords = ["dismissed", "allowed", "acquitted", "convicted", "granted", "rejected"]
         return any(k in text.lower() for k in keywords)
 
-    def get_global_metadata(self, clean_text: str) -> Dict[str, Any]:
+    async def get_global_metadata(self, clean_text: str) -> Dict[str, Any]:
         """Reads Head & Tail to extract Verdict using Groq."""
         # First 3k chars + Last 3k chars
         head = clean_text[:3000]
@@ -157,24 +189,36 @@ class LegalPipeline:
         context = f"--- START OF DOC ---\n{head}\n...\n--- END OF DOC ---\n{tail}"
         
         try:
-            response = llm.invoke([
-                SystemMessage(content=GLOBAL_CONTEXT_PROMPT),
-                HumanMessage(content=context)
-            ])
+            # Run LLM call in thread pool (CPU-bound)
+            response = await asyncio.to_thread(
+                self.llm.invoke,
+                [
+                    SystemMessage(content=GLOBAL_CONTEXT_PROMPT),
+                    HumanMessage(content=context)
+                ]
+            )
             content = response.content.replace("```json", "").replace("```", "").strip()
             return json.loads(content)
         except Exception as e:
             print(f"⚠️ Global Metadata Failed: {e}")
-            return {"outcome": "Unknown", "winning_party": "Unknown", "city": None, "year_of_judgment": None}
+            return {
+                "outcome": "Unknown",
+                "winning_party": "Unknown",
+                "city": None,
+                "year_of_judgment": None
+            }
 
-    def atomize_paragraph(self, paragraph: str, retry_count: int = 0) -> List[Dict]:
+    async def atomize_paragraph(self, paragraph: str, retry_count: int = 0) -> List[Dict]:
         """Calls Groq to atomize text and VALIDATES quotes to stop hallucinations."""
         max_retries = 3
         try:
-            response = llm.invoke([
-                SystemMessage(content=ATOMIZATION_SYSTEM_PROMPT),
-                HumanMessage(content=paragraph)
-            ])
+            response = await asyncio.to_thread(
+                self.llm.invoke,
+                [
+                    SystemMessage(content=ATOMIZATION_SYSTEM_PROMPT),
+                    HumanMessage(content=paragraph)
+                ]
+            )
             
             # Clean up the response more robustly
             content = response.content.strip()
@@ -202,7 +246,7 @@ class LegalPipeline:
                 quote = unit.get("supporting_quote", "")
                 
                 # CHECK: Fuzzy validation to handle PDF OCR errors
-                if not self.validate_quote_fuzzy(quote, paragraph, threshold=0.60):
+                if not self.validate_quote_fuzzy(quote, paragraph):
                     print(f"⚠️ Hallucination Blocked: '{unit.get('content', '')}'")
                     print(f"   Reason: Quote '{quote[:80]}...' not found in source text.")
                     continue  # SKIP this chunk (It is fake/hallucinated)
@@ -221,101 +265,115 @@ class LegalPipeline:
             if "429" in str(e) and retry_count < max_retries:
                 wait_time = 2 ** retry_count  # Exponential backoff: 1s, 2s, 4s
                 print(f"⏳ Groq Rate Limit (attempt {retry_count + 1}/{max_retries}). Sleeping {wait_time}s...")
-                time.sleep(wait_time)
-                return self.atomize_paragraph(paragraph, retry_count + 1)
+                await asyncio.sleep(wait_time)
+                return await self.atomize_paragraph(paragraph, retry_count + 1)
             print(f"⚠️ Atomization Failed: {e}")
             return []
 
-    def process_pdf_to_json(self, file_path: str, output_json_path: str):
-        print(f"\n🚀 Processing File: {file_path}")
+    async def process_pdf(self, file_path: str) -> JudgmentResult:
+        """Main entry point: Process PDF to structured judgment chunks."""
+        print(f"\n🚀 Processing Judgment: {file_path}")
+        
+        filename = Path(file_path).name
+        errors = []
+        warnings = []
         
         # 1. PARSE (PyMuPDF)
         try:
             raw_text = self.extract_text_with_pymupdf(file_path)
         except Exception as e:
-            print(f"❌ Failed to parse PDF: {e}")
-            return
+            error_msg = f"Failed to parse PDF: {e}"
+            print(f"❌ {error_msg}")
+            errors.append(error_msg)
+            return JudgmentResult(
+                filename=filename,
+                total_chunks=0,
+                chunks=[],
+                errors=errors
+            )
 
         # 2. CLEAN
         clean_doc = self.clean_text(raw_text)
         
         # 3. GLOBAL CONTEXT
         print("   🔍 Extracting Global Metadata...")
-        global_meta = self.get_global_metadata(clean_doc)
+        global_meta = await self.get_global_metadata(clean_doc)
         print(f"      Verdict: {global_meta.get('outcome')} | Winner: {global_meta.get('winning_party')}")
         
         paragraphs = clean_doc.split('\n\n')
         final_chunks = []
         
-        print(f"   ⚡ Atomizing {len(paragraphs)} paragraphs (this may take a moment)...")
+        print(f"   ⚡ Atomizing {len(paragraphs)} paragraphs...")
         
         for i, para in enumerate(paragraphs):
             para = para.strip()
-            if not para: continue
+            if not para:
+                continue
             
             # GARBAGE FILTER: Skip corrupted text before calling LLM
             if self.is_garbage(para):
-                print(f"   🗑️ Skipping garbage text: {para[:50]}...")
+                warning_msg = f"Skipped garbage text at paragraph {i}"
+                warnings.append(warning_msg)
+                print(f"   🗑️ {warning_msg}: {para[:50]}...")
                 continue
             
             # Smart Filter
             if len(para) < 50:
-                if self.is_noise(para): continue
-                if not self.is_critical_outcome(para): continue
+                if self.is_noise(para):
+                    continue
+                if not self.is_critical_outcome(para):
+                    continue
             
             # 4. ATOMIZATION (Groq)
-            atomic_units = self.atomize_paragraph(para)
+            atomic_units = await self.atomize_paragraph(para)
             
             for j, unit in enumerate(atomic_units):
-                # Construct the Payload
-                chunk_payload = {
-                    "id": f"{os.path.basename(file_path)}_{i}_{j}",
-                    "text_content": unit.get("content", ""),
-                    "metadata": {
-                        # Global Layers
-                        "parent_doc": os.path.basename(file_path),
-                        "outcome": global_meta.get("outcome"),
-                        "winning_party": global_meta.get("winning_party"),
-                        "case_title": global_meta.get("case_title"),
-                        "court_name": global_meta.get("court_name"),
-                        "city": global_meta.get("city"),
-                        "year_of_judgment": global_meta.get("year_of_judgment"),
-                        # Local Layers
-                        "section_type": unit.get("section_type", "Unknown"),
-                        "party_role": unit.get("party_role", "Unknown"),
-                        "legal_topics": unit.get("legal_topics", []),
-                        "original_context": para[:400] # For reference
-                    }
-                }
+                # Construct the Chunk
+                chunk_id = f"{Path(filename).stem}_{i}_{j}"
                 
-                # Only add if we have valid content
-                if chunk_payload["text_content"]:
-                    final_chunks.append(chunk_payload)
-            
-            # Optional: Sleep to avoid hammering free tier limits
-            # time.sleep(0.2)
-
-        # 5. SAVE TO JSON (Instead of Embedding)
-        print(f"   💾 Saving {len(final_chunks)} atomic units to {output_json_path}...")
-        with open(output_json_path, "w", encoding="utf-8") as f:
-            json.dump(final_chunks, f, indent=2)
+                try:
+                    chunk = JudgmentChunk(
+                        chunk_id=chunk_id,
+                        text_for_embedding=unit.get("content", ""),
+                        supporting_quote=unit.get("supporting_quote", ""),
+                        metadata=JudgmentMetadata(
+                            # Global Layers
+                            parent_doc=filename,
+                            case_title=global_meta.get("case_title"),
+                            court_name=global_meta.get("court_name"),
+                            city=global_meta.get("city"),
+                            year_of_judgment=global_meta.get("year_of_judgment"),
+                            outcome=Outcome(global_meta.get("outcome", "Unknown")),
+                            winning_party=WinningParty(global_meta.get("winning_party", "None")),
+                            # Local Layers
+                            section_type=SectionType(unit.get("section_type", "Fact")),
+                            party_role=PartyRole(unit.get("party_role", "None")),
+                            legal_topics=unit.get("legal_topics", []),
+                            original_context=para[:400]  # For reference
+                        )
+                    )
+                    
+                    # Only add if we have valid content
+                    if chunk.text_for_embedding:
+                        final_chunks.append(chunk)
+                        
+                except Exception as e:
+                    error_msg = f"Failed to create chunk {chunk_id}: {e}"
+                    warnings.append(error_msg)
+                    print(f"   ⚠️ {error_msg}")
         
-        print("✅ Done! You can now inspect the JSON file.")
-
-        # --- EMBEDDING SECTION (COMMENTED OUT) ---
-        # print("   embedding chunks...")
-        # vectors = embedder.embed_documents([c["text_content"] for c in final_chunks])
-        # collection.upsert(
-        #     ids=[c["id"] for c in final_chunks],
-        #     embeddings=vectors,
-        #     documents=[c["text_content"] for c in final_chunks],
-        #     metadatas=[c["metadata"] for c in final_chunks]
-        # )
-
-if __name__ == "__main__":
-    # Point this to your actual PDF file
-    pdf_path = "Smt_Noor_Jahan_Begum_Anjali_Mishra_vs_State_Of_U_P_4_Others_on_16_December_2014.PDF"
-    output_path = "processed_judgment_new.json"
-    
-    pipeline = LegalPipeline()
-    pipeline.process_pdf_to_json(pdf_path, output_path)
+        print(f"   ✅ Extracted {len(final_chunks)} atomic units")
+        
+        return JudgmentResult(
+            filename=filename,
+            case_title=global_meta.get("case_title"),
+            court_name=global_meta.get("court_name"),
+            city=global_meta.get("city"),
+            year_of_judgment=global_meta.get("year_of_judgment"),
+            outcome=Outcome(global_meta.get("outcome", "Unknown")),
+            winning_party=WinningParty(global_meta.get("winning_party", "None")),
+            total_chunks=len(final_chunks),
+            chunks=final_chunks,
+            errors=errors,
+            warnings=warnings
+        )

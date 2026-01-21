@@ -36,5 +36,6 @@ async def health_check():
     return {"status": "ok", "db": settings.MONGO_DB}
 
 # Include Routers
-from app.api.routes import ingestion
+from app.api.routes import ingestion, judgments
 app.include_router(ingestion.router, prefix="/api/ingest", tags=["Ingestion"])
+app.include_router(judgments.router, prefix="/api/judgments", tags=["Judgments"])
