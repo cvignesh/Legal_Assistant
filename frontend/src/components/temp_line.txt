@@ -1,0 +1,1 @@
+                                                <div className={stage-dot ${job.status === 'completed' ? 'completed' : idx < stageInfo.stage ? 'completed' : idx === stageInfo.stage ? 'active' : 'pending'}} />
