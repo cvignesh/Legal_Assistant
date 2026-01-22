@@ -43,7 +43,7 @@ async def test_judgment_full_ingestion_with_mongodb(client, pdf_filename, expect
     print(f"\n✓ Uploaded judgment PDF, job_id: {job_id}")
     
     # Step 2: Wait for parsing to complete
-    max_wait = 120  # Judgments take longer to parse (LLM calls)
+    max_wait = 300  # Increased timeout: LLM atomization takes longer (was 120)
     for i in range(max_wait):
         status_response = await client.get(f"/api/judgments/{job_id}/status")
         status = status_response.json()["status"]
@@ -54,6 +54,10 @@ async def test_judgment_full_ingestion_with_mongodb(client, pdf_filename, expect
         elif status == "failed":
             error = status_response.json().get("error")
             pytest.fail(f"Parsing failed: {error}")
+        
+        # Print status every 30 seconds
+        if i % 30 == 0 and i > 0:
+            print(f"  ... still parsing ({i}s elapsed, status: {status})")
         
         await asyncio.sleep(1)
     else:
