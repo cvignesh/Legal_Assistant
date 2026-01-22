@@ -692,6 +692,178 @@ db.legal_chunks_v1.find({
 - **Status**: Fixed in commit 21b4fdb9
 - **Solution**: Added COUNSEL to PartyRole enum
 
+---
+
+### CLI Batch Processing
+
+> [!TIP]
+> **For Bulk Ingestion**: Use the CLI batch script to process multiple judgment PDFs from a folder automatically.
+
+#### Installation & Setup
+
+**Prerequisites:**
+```bash
+cd backend
+pip install requests  # If not already installed
+```
+
+**Verify API is running:**
+```bash
+# Terminal 1: Start backend server
+uvicorn app.main:app --reload
+
+# Terminal 2: Run batch script
+python scripts/ingest_judgments_batch.py --help
+```
+
+---
+
+#### Basic Usage
+
+**Process all PDFs in a folder:**
+```bash
+python scripts/ingest_judgments_batch.py --folder /path/to/judgments/
+```
+
+**Example with POC judgments:**
+```bash
+python scripts/ingest_judgments_batch.py --folder ../_legacy_poc/Judgment_parsing_POC/
+```
+
+---
+
+#### Command-Line Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--folder PATH` | Path to folder containing PDF files (required) | - |
+| `--no-auto-confirm` | Don't auto-confirm jobs (requires manual API calls) | Auto-confirm enabled |
+| `--help` | Show help message and exit | - |
+
+---
+
+#### Processing Flow
+
+**With Auto-Confirm (Default):**
+```
+For each PDF in folder:
+  1. Upload PDF → Get job_id
+  2. Wait for parsing (status: queued → parsing → preview_ready)
+  3. Auto-confirm job
+  4. Wait for indexing (status: indexing → completed)
+  5. Report chunks indexed
+```
+
+**Without Auto-Confirm:**
+```
+For each PDF in folder:
+  1. Upload PDF → Get job_id
+  2. Wait for parsing → preview_ready
+  3. Stop (manual confirmation required via API)
+```
+
+---
+
+#### Example Output
+
+```
+======================================================================
+   Judgment PDF Batch Ingestion Tool
+======================================================================
+
+Found 3 PDF file(s)
+Auto-confirm: Yes
+
+[1/3]
+
+📄 Processing: Smt_Noor_Jahan_Begum_vs_State.PDF
+  → Uploading...
+    ✓ Uploaded (Job ID: cc601e04...)
+  → Waiting for parsing...
+    ⚡ Parsing in progress...
+    📝 Progress: 10/56 paragraphs processed, 75 chunks so far
+    📝 Progress: 20/56 paragraphs processed, 152 chunks so far
+    ✓ Parsing completed!
+  → Confirming & starting indexing...
+    📊 Indexing to MongoDB...
+    ✓ Completed! 396 chunks indexed
+
+[2/3]
+📄 Processing: Rabari_Sagarbhai_vs_State.PDF
+  ...
+
+======================================================================
+  📊 SUMMARY REPORT
+======================================================================
+
+  ✓ Completed: 2
+  ⚠ Pending Confirmation: 0
+  ✗ Failed: 1
+  Total Processing Time: 845.3s
+
+  Total Chunks Indexed: 850
+
+Failed Files:
+  - corrupt_file.pdf: Failed to parse PDF: Invalid PDF structure
+
+======================================================================
+```
+
+---
+
+#### Processing Time Estimates
+
+| Judgments | Pages/Each | Estimated Time | Chunks Generated |
+|-----------|------------|----------------|------------------|
+| 1 | 50 pages | ~6-7 minutes | 400-500 |
+| 5 | 50 pages | ~30-35 minutes | 2,000-2,500 |
+| 10 | 50 pages | ~60-70 minutes | 4,000-5,000 |
+
+> **Note**: Processing time depends on Groq API rate limits (~30 req/min). Larger judgments take longer.
+
+---
+
+#### Advanced Usage
+
+**Process with manual review:**
+```bash
+# Step 1: Parse only (no auto-indexing)
+python scripts/ingest_judgments_batch.py --folder ./judgments/ --no-auto-confirm
+
+# Script will output job IDs for each file
+# Example output:
+#   Pending Confirmation:
+#     - judgment1.pdf (Job ID: abc-123)
+#     - judgment2.pdf (Job ID: def-456)
+
+# Step 2: Review preview via API
+python -c "import requests; r = requests.get('http://localhost:8000/api/judgments/abc-123/preview'); print(r.json())"
+
+# Step 3: Confirm manually
+python -c "import requests; r = requests.post('http://localhost:8000/api/judgments/abc-123/confirm'); print(r.json())"
+```
+
+---
+
+#### Error Handling
+
+**Common Errors:**
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `Folder not found` | Invalid path | Check folder path exists |
+| `No PDF files found` | Folder is empty or contains no PDFs | Verify PDFs exist (`.pdf` or `.PDF`) |
+| `Connection refused` | Backend not running | Start: `uvicorn app.main:app --reload` |
+| `Parsing timeout` | Judgment too large | Normal - script handles this gracefully |
+| `Upload failed` | File not a valid PDF | Check PDF file integrity |
+
+**Script Features:**
+- ✅ Automatic retry on transient failures
+- ✅ Continues processing other files if one fails
+- ✅ Colored terminal output for easy reading
+- ✅ Detailed progress tracking
+- ✅ Final summary report
+
 
 ## Application Features
 
