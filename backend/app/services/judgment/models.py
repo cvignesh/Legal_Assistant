@@ -23,6 +23,7 @@ class PartyRole(str, Enum):
     COURT = "Court"
     WITNESS = "Witness"
     PROSECUTION = "Prosecution"
+    COUNSEL = "Counsel"  # Added for lawyer/advocate arguments
     NONE = "None"
 
 

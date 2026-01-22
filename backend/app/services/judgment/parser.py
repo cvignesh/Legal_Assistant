@@ -73,7 +73,7 @@ Task: Break the provided paragraph into "Atomic Units" (standalone statements) b
 
 ### CLASSIFICATION RULES ###
 - `section_type`: ["Fact", "Submission_Petitioner", "Submission_Respondent", "Court_Observation", "Statute_Citation", "Operative_Order"]
-- `party_role`: ["Petitioner", "Respondent", "Court", "Witness", "Prosecution", "None"]
+- `party_role`: ["Petitioner", "Respondent", "Court", "Witness", "Prosecution", "Counsel", "None"]
 - `legal_topics`: List of 1-3 specific concepts (e.g., ["Delay in FIR"]).
 
 ### OUTPUT FORMAT ###
@@ -309,6 +309,10 @@ class JudgmentParser:
             para = para.strip()
             if not para:
                 continue
+            
+            # Progress indicator every 10 paragraphs
+            if i % 10 == 0 and i > 0:
+                print(f"   📝 Progress: {i}/{len(paragraphs)} paragraphs processed, {len(final_chunks)} chunks so far")
             
             # GARBAGE FILTER: Skip corrupted text before calling LLM
             if self.is_garbage(para):
