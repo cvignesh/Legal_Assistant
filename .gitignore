@@ -14,3 +14,4 @@ venv.bak/
 _legacy_poc/*.parquet
 RAGLegalAssistant/
 .DS_Store
+backend/data/
