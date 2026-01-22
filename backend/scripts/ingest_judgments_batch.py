@@ -144,7 +144,8 @@ def wait_for_indexing(job_id: str, timeout: int = 300) -> bool:
     while time.time() - start_time < timeout:
         status_data = get_job_status(job_id)
         
-        if "error" in status_data:
+        if status_data.get("error"):
+            print(f"    {Colors.RED}✗ Error checking status: {status_data['error']}{Colors.RESET}")
             return False
         
         status = status_data.get("status")
