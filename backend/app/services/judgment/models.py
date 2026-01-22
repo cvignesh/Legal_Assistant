@@ -1,9 +1,12 @@
 """
 Pydantic models for Judgment Processing
 """
-from pydantic import BaseModel, Field
-from typing import Optional, List, Literal
 from enum import Enum
+from typing import Optional, List, Literal
+from pydantic import BaseModel, Field
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SectionType(str, Enum):
@@ -14,6 +17,7 @@ class SectionType(str, Enum):
     COURT_OBSERVATION = "Court_Observation"
     STATUTE_CITATION = "Statute_Citation"
     OPERATIVE_ORDER = "Operative_Order"
+    OTHER = "Other"  # Catch-all for unknown sections
 
 
 class PartyRole(str, Enum):
@@ -23,7 +27,11 @@ class PartyRole(str, Enum):
     COURT = "Court"
     WITNESS = "Witness"
     PROSECUTION = "Prosecution"
-    COUNSEL = "Counsel"  # Added for lawyer/advocate arguments
+    COUNSEL = "Counsel"  # Lawyer/advocate arguments
+    POLICE = "Police"  # Police/investigation submissions
+    ADVOCATES = "Advocates"  # Multiple advocates (collective)
+    ACCUSED = "Accused"  # Criminal defendant
+    OTHER = "Other"  # Catch-all for unknown roles
     NONE = "None"
 
 
@@ -42,6 +50,7 @@ class WinningParty(str, Enum):
     PETITIONER = "Petitioner"
     RESPONDENT = "Respondent"
     STATE = "State"
+    UNKNOWN = "Unknown"
     NONE = "None"
 
 
@@ -52,12 +61,12 @@ class JudgmentMetadata(BaseModel):
     court_name: Optional[str] = Field(None, description="Name of the court")
     city: Optional[str] = Field(None, description="City where court is located")
     year_of_judgment: Optional[int] = Field(None, description="Year judgment was delivered")
-    outcome: Outcome = Field(default=Outcome.UNKNOWN)
-    winning_party: WinningParty = Field(default=WinningParty.NONE)
+    outcome: str = Field(default="Unknown", description="Judgment outcome")
+    winning_party: str = Field(default="None", description="Winning party")
     
     # Chunk-specific metadata
-    section_type: SectionType = Field(..., description="Type of content")
-    party_role: PartyRole = Field(..., description="Associated party role")
+    section_type: str = Field(..., description="Type of content")
+    party_role: str = Field(..., description="Associated party role")
     legal_topics: List[str] = Field(default_factory=list, description="Legal topics/concepts")
     original_context: Optional[str] = Field(None, description="Original paragraph context")
 
@@ -77,8 +86,8 @@ class JudgmentResult(BaseModel):
     court_name: Optional[str] = None
     city: Optional[str] = None
     year_of_judgment: Optional[int] = None
-    outcome: Outcome = Outcome.UNKNOWN
-    winning_party: WinningParty = WinningParty.NONE
+    outcome: str = "Unknown"
+    winning_party: str = "None"
     total_chunks: int
     chunks: List[JudgmentChunk]
     errors: List[str] = Field(default_factory=list)

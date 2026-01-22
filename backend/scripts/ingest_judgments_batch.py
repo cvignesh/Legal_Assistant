@@ -49,9 +49,13 @@ def print_banner():
 
 def find_pdfs(folder_path: Path) -> List[Path]:
     """Find all PDF files in the given folder"""
-    # Use set to avoid duplicates on case-insensitive file systems (Windows)
-    pdfs = set(folder_path.glob("*.PDF")) | set(folder_path.glob("*.pdf"))
-    return sorted(pdfs)
+    # Use set logic on resolved paths to avoid duplicates on Windows
+    pdfs = set()
+    for p in folder_path.glob("*.PDF"):
+        pdfs.add(p.resolve())
+    for p in folder_path.glob("*.pdf"):
+        pdfs.add(p.resolve())
+    return sorted(list(pdfs))
 
 
 def upload_judgment(pdf_path: Path) -> Dict:
@@ -60,7 +64,8 @@ def upload_judgment(pdf_path: Path) -> Dict:
         with open(pdf_path, 'rb') as f:
             files = {'files': (pdf_path.name, f, 'application/pdf')}
             response = requests.post(UPLOAD_ENDPOINT, files=files, timeout=30)
-            response.raise_for_status()
+            if response.status_code != 200:
+                return {"error": f"HTTP {response.status_code}: {response.text}"}
             return response.json()
     except Exception as e:
         return {"error": str(e)}
@@ -68,12 +73,23 @@ def upload_judgment(pdf_path: Path) -> Dict:
 
 def get_job_status(job_id: str) -> Dict:
     """Get status of a judgment processing job"""
+    response = None
     try:
-        response = requests.get(STATUS_ENDPOINT.format(job_id=job_id), timeout=10)
+        url = STATUS_ENDPOINT.format(job_id=job_id)
+        response = requests.get(url, timeout=10)
         response.raise_for_status()
         return response.json()
+    except requests.exceptions.HTTPError as e:
+        status_code = response.status_code if response else "N/A"
+        return {"error": f"HTTP {status_code}: {str(e)}"}
+    except requests.exceptions.ConnectionError as e:
+        return {"error": f"Connection failed: Cannot reach server at {API_BASE_URL}"}
+    except requests.exceptions.Timeout as e:
+        return {"error": f"Request timeout after 10s"}
+    except requests.exceptions.RequestException as e:
+        return {"error": f"Request error: {str(e)}"}
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": f"{type(e).__name__}: {str(e)}"}
 
 
 def confirm_job(job_id: str) -> Dict:
@@ -86,15 +102,16 @@ def confirm_job(job_id: str) -> Dict:
         return {"error": str(e)}
 
 
-def wait_for_parsing(job_id: str, filename: str, timeout: int = 600) -> bool:
-    """Wait for parsing to complete (max 10 minutes)"""
+def wait_for_parsing(job_id: str, filename: str, timeout: int = 3600) -> bool:
+    """Wait for parsing to complete (max 60 minutes)"""
     start_time = time.time()
     last_status = None
     
     while time.time() - start_time < timeout:
         status_data = get_job_status(job_id)
         
-        if "error" in status_data:
+        # Check for actual errors (not None)
+        if status_data.get("error"):
             print(f"    {Colors.RED}✗ Error checking status: {status_data['error']}{Colors.RESET}")
             return False
         
@@ -172,7 +189,21 @@ def process_judgment(pdf_path: Path, auto_confirm: bool = True) -> Dict:
         print(f"    {Colors.RED}✗ Upload failed: {upload_response['error']}{Colors.RESET}")
         return result
     
-    job_id = upload_response["jobs"][0]["job_id"]
+    # Check for per-file errors in response
+    if not upload_response.get("jobs"):
+        result["status"] = "failed"
+        result["error"] = "No job created by API"
+        print(f"    {Colors.RED}✗ Upload failed: No job returned{Colors.RESET}")
+        return result
+        
+    job_data = upload_response["jobs"][0]
+    if job_data.get("status") == "failed":
+        result["status"] = "failed"
+        result["error"] = job_data.get("error", "Unknown upload error")
+        print(f"    {Colors.RED}✗ Upload failed: {result['error']}{Colors.RESET}")
+        return result
+        
+    job_id = job_data["job_id"]
     result["job_id"] = job_id
     print(f"    {Colors.GREEN}✓ Uploaded (Job ID: {job_id[:8]}...){Colors.RESET}")
     

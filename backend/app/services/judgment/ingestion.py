@@ -1,5 +1,5 @@
 """
-Judgment Ingestion Service - Async processing following existing pattern
+Judgment Ingestion Service - Async processing with MongoDB job persistence
 """
 import uuid
 import asyncio
@@ -32,7 +32,7 @@ class JudgmentJob(BaseModel):
         use_enum_values = True
 
 
-# In-memory job store (Replace with Redis/DB for production)
+# In-memory job store
 judgment_job_store: Dict[str, JudgmentJob] = {}
 
 

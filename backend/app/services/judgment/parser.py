@@ -73,7 +73,7 @@ Task: Break the provided paragraph into "Atomic Units" (standalone statements) b
 
 ### CLASSIFICATION RULES ###
 - `section_type`: ["Fact", "Submission_Petitioner", "Submission_Respondent", "Court_Observation", "Statute_Citation", "Operative_Order"]
-- `party_role`: ["Petitioner", "Respondent", "Court", "Witness", "Prosecution", "Counsel", "None"]
+- `party_role`: ["Petitioner", "Respondent", "Court", "Witness", "Prosecution", "Counsel", "Police", "Advocates", "None"]
 - `legal_topics`: List of 1-3 specific concepts (e.g., ["Delay in FIR"]).
 
 ### OUTPUT FORMAT ###
@@ -347,11 +347,11 @@ class JudgmentParser:
                             court_name=global_meta.get("court_name"),
                             city=global_meta.get("city"),
                             year_of_judgment=global_meta.get("year_of_judgment"),
-                            outcome=Outcome(global_meta.get("outcome", "Unknown")),
-                            winning_party=WinningParty(global_meta.get("winning_party", "None")),
+                            outcome=global_meta.get("outcome", "Unknown"),
+                            winning_party=global_meta.get("winning_party", "None"),
                             # Local Layers
-                            section_type=SectionType(unit.get("section_type", "Fact")),
-                            party_role=PartyRole(unit.get("party_role", "None")),
+                            section_type=unit.get("section_type", "Fact"),
+                            party_role=unit.get("party_role", "None"),
                             legal_topics=unit.get("legal_topics", []),
                             original_context=para[:400]  # For reference
                         )

@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     MONGO_URI: str
     MONGO_DB: str = "legal_db"
     MONGO_COLLECTION_CHUNKS: str = "legal_chunks_v1"
+    MONGO_COLLECTION_JUDGMENT_JOBS: str = "judgment_jobs"  # Persistent job storage
 
     # LLM (Groq)
     LLM_PROVIDER: str = "groq"
