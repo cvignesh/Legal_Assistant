@@ -57,34 +57,170 @@ An AI-powered assistant for **Indian Laws, Acts & Case Law (Judgments)** built w
 | **Backend** | Python, FastAPI, LangChain |
 | **Frontend** | React, Vite, Material UI |
 | **Database** | MongoDB Atlas (Vector + Text Search) |
-| **LLM** | Groq (Llama-3.3-70b) |
-| **Embeddings** | Mistral (mistral-embed) |
+| **LLM** | Groq (Llama-3.3-70b, Llama-3.1-8b-instant) |
+| **Embeddings** | Mistral (mistral-embed, 1024-dim) |
 | **Reranking** | Cohere |
 
 ---
 
 ## 🚀 Quick Start
 
+### Prerequisites
+
+- **Python 3.11+**
+- **Node.js 18+** (for frontend)
+- **MongoDB Atlas** account
+- **API Keys**: Groq, Mistral, Cohere
+
+### 1. Clone Repository
+
 ```bash
-# Clone
 git clone https://github.com/cvignesh/Legal_Assistant.git
 cd Legal_Assistant
-
-# Setup
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-
-# Configure
-cp .env.example .env
-# Edit .env with your API keys
-
-# Run Backend
-uvicorn app.main:app --reload
-
-# Run Frontend
-cd frontend && npm install && npm run dev
 ```
+
+### 2. Backend Setup
+
+```bash
+# Navigate to backend
+cd backend
+
+# Create virtual environment
+python -m venv RAGLegalAssistant
+
+# Activate virtual environment
+# Windows PowerShell:
+.\RAGLegalAssistant\Scripts\Activate.ps1
+
+# Linux/Mac:
+source RAGLegalAssistant/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### 3. Configure Environment Variables
+
+```bash
+# Copy example env file (if available)
+cp .env.example .env
+
+# Or create .env manually with required keys
+```
+
+**Required API Keys in `.env`:**
+```env
+# MongoDB
+MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/
+MONGO_DB=legal_db
+MONGO_COLLECTION_CHUNKS=legal_chunks_v1
+
+# LLM (Groq)
+GROQ_API_KEY=your_groq_api_key
+LLM_MODEL=llama-3.3-70b-versatile
+
+# Embeddings (Mistral)
+MISTRAL_API_KEY=your_mistral_api_key
+EMBED_MODEL=mistral-embed
+
+# Reranking (Cohere)
+COHERE_API_KEY=your_cohere_api_key
+```
+
+### 4. Start Backend Server
+
+```bash
+# From backend directory (with venv activated)
+uvicorn app.main:app --reload
+```
+
+**Server will start at:** `http://localhost:8000`
+
+**Verify:** http://localhost:8000/docs (FastAPI Swagger UI)
+
+---
+
+## 📥 Data Ingestion
+
+### Ingest Judgment PDFs (CLI Batch Script)
+
+**Process Multiple Judgments Automatically:**
+
+```bash
+# From backend directory (with server running in another terminal)
+python scripts/ingest_judgments_batch.py --folder /path/to/judgment/pdfs/
+```
+
+**Example with POC Judgments:**
+
+```bash
+python scripts/ingest_judgments_batch.py --folder ../_legacy_poc/Judgment_parsing_POC/
+```
+
+**CLI Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--folder PATH` | Path to folder containing judgment PDFs (required) |
+| `--no-auto-confirm` | Don't auto-confirm jobs (manual review required) |
+| `--help` | Show help message |
+
+**Processing Output:**
+
+```
+======================================================================
+   Judgment PDF Batch Ingestion Tool
+======================================================================
+
+Found 3 PDF file(s)
+Auto-confirm: Yes
+
+[1/3]
+📄 Processing: judgment1.pdf
+  → Uploading...
+    ✓ Uploaded (Job ID: abc12345...)
+  → Waiting for parsing...
+    ⚡ Parsing in progress...
+    ✓ Parsing completed!
+  → Confirming & starting indexing...
+    ✓ Completed! 396 chunks indexed
+
+====================================================================== 
+  📊 SUMMARY REPORT
+======================================================================
+
+  ✓ Completed: 3
+  Total Chunks Indexed: 1,250
+  Total Processing Time: 22.5 minutes
+======================================================================
+```
+
+**Processing Time:** ~6-7 minutes per 50-page judgment (LLM rate limits)
+
+---
+
+### Ingest ACT PDFs (API Method)
+
+> **Note:** ACT CLI batch script coming soon. Currently use API via Swagger UI.
+
+**Via FastAPI Swagger UI:**
+1. Go to http://localhost:8000/docs
+2. Find `POST /api/ingest/upload`
+3. Upload ACT PDF files
+4. Monitor: `GET /api/ingest/{job_id}/status`
+5. Confirm: `POST /api/ingest/{job_id}/confirm`
+
+---
+
+### 5. Frontend Setup (Optional)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+**Frontend will start at:** `http://localhost:5173`
 
 ---
 
@@ -92,24 +228,40 @@ cd frontend && npm install && npm run dev
 
 ```
 Legal_Assistant/
-├── app/
-│   ├── api/           # FastAPI routes
-│   ├── parser/        # Smart Parser (Narrative/Strict/Schedule)
-│   ├── services/      # Retriever, LLM, Database
-│   └── models/        # Pydantic schemas
-├── frontend/          # React + Material UI
-├── scripts/           # Batch ingestion CLI
-├── tests/             # Unit & integration tests
-├── docs/              # UI mockups & diagrams
-└── DESIGN.md          # Full implementation plan
+├── backend/
+│   ├── app/
+│   │   ├── api/              # FastAPI routes
+│   │   │   └── routes/
+│   │   │       ├── ingestion.py      # ACT PDF ingestion
+│   │   │       └── judgments.py      # Judgment PDF ingestion
+│   │   ├── services/
+│   │   │   ├── parser/       # ACT PDF parser
+│   │   │   ├── judgment/     # Judgment PDF parser with LLM
+│   │   │   ├── embedder.py   # Mistral embeddings
+│   │   │   └── ingestion.py  # Ingestion orchestration
+│   │   └── core/
+│   │       └── config.py     # Environment configuration
+│   ├── scripts/
+│   │   └── ingest_judgments_batch.py    # CLI batch tool
+│   ├── data/
+│   │   └── judgments/        # Processed JSON outputs (gitignored)
+│   └── tests/
+├── frontend/                  # React + Material UI
+├── _legacy_poc/              # POC scripts and sample data
+├── DESIGN.md                 # Full implementation plan
+└── README.md                 # This file
 ```
 
 ---
 
 ## 📖 Documentation
 
-- **[Full Design Document](DESIGN.md)** - Detailed implementation plan
-- **[UI Mockups](docs/)** - Interface prototypes
+- **[Full Design Document](DESIGN.md)** - Comprehensive implementation details
+  - Judgment Processing Architecture
+  - Manual Testing Guide
+  - CLI Batch Processing Guide
+  - Use Case Metadata Mapping
+- **[API Documentation](http://localhost:8000/docs)** - Interactive Swagger UI (when server is running)
 
 ---
 
@@ -131,3 +283,26 @@ Legal_Assistant/
 | Hallucination Rate | ≤ 0.1 |
 
 ---
+
+## 🧪 Testing
+
+**Manual API Testing:**
+Refer to DESIGN.md "Manual Testing Guide for Judgment APIs" section for step-by-step commands.
+
+**Integration Tests:**
+```bash
+cd backend
+pytest tests/api/test_judgment_integration.py -v
+```
+
+---
+
+## 🤝 Contributing
+
+See [DESIGN.md](DESIGN.md) for detailed architecture and implementation guidelines.
+
+---
+
+## 📄 License
+
+This project is for educational and research purposes.
