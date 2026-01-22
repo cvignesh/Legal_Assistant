@@ -49,7 +49,8 @@ def print_banner():
 
 def find_pdfs(folder_path: Path) -> List[Path]:
     """Find all PDF files in the given folder"""
-    pdfs = list(folder_path.glob("*.PDF")) + list(folder_path.glob("*.pdf"))
+    # Use set to avoid duplicates on case-insensitive file systems (Windows)
+    pdfs = set(folder_path.glob("*.PDF")) | set(folder_path.glob("*.pdf"))
     return sorted(pdfs)
 
 
