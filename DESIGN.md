@@ -420,17 +420,277 @@ pytest tests/api/test_judgment_integration.py -v
 }
 ```
 
-**MongoDB Document**:
-```javascript
+
+---
+
+### Manual Testing Guide for Judgment APIs
+
+> [!TIP]
+> **Recommended Testing Method**: Use manual API calls instead of pytest integration tests due to Groq rate limits (~6 minutes processing time vs 5 minute test timeout).
+
+#### Prerequisites
+
+- Backend server running: `uvicorn app.main:app --reload`
+- MongoDB connected
+- Groq API key configured in `.env`
+
+#### Step-by-Step Testing
+
+**Step 1: Upload Judgment PDF**
+
+```powershell
+python -c "import requests; r = requests.post('http://localhost:8000/api/judgments/upload', files={'files': open(r'd:\AI_RAG_Judiciary_App\_legacy_poc\Judgment_parsing_POC\Smt_Noor_Jahan_Begum_Anjali_Mishra_vs_State_Of_U_P_4_Others_on_16_December_2014.PDF', 'rb')}); print(r.json())"
+```
+
+**Expected Response:**
+```json
 {
-  "_id": "judgment_12_3",
-  "text_for_embedding": "...",
-  "embedding": [0.123, -0.456, ...], // 1024 dimensions
-  "document_type": "judgment",       // Filter marker
-  "metadata": { /* full metadata */ },
-  "created_at": ISODate("2024-01-21T...")
+  "total_uploaded": 1,
+  "jobs": [{
+    "job_id": "cc601e04-303b-42d3-b26e-274fe835b93f",
+    "filename": "Smt_Noor_Jahan_Begum...",
+    "status": "queued"
+  }]
 }
 ```
+
+**Copy the `job_id` for next steps!**
+
+---
+
+**Step 2: Monitor Parsing Progress**
+
+```powershell
+# Replace {job_id} with actual ID from Step 1
+python -c "import requests; r = requests.get('http://localhost:8000/api/judgments/{job_id}/status'); print(r.json())"
+```
+
+**Status Progression:**
+- `queued` → `parsing` → `preview_ready` (takes ~6-7 minutes)
+
+**Server Console Output (uvicorn terminal):**
+```
+🚀 Processing Judgment: C:\Users\Admin\AppData\Local\Temp\tmpXXX.PDF
+   🔍 Extracting Global Metadata...
+      Verdict: Dismissed | Winner: State
+   ⚡ Atomizing 56 paragraphs...
+   📝 Progress: 10/56 paragraphs processed, 75 chunks so far
+   📝 Progress: 20/56 paragraphs processed, 152 chunks so far
+   ⚠️ Hallucination Blocked: '...'
+   📝 Progress: 30/56 paragraphs processed, 202 chunks so far
+   📝 Progress: 40/56 paragraphs processed, 297 chunks so far
+   ✅ Extracted 396 atomic units
+   💾 Saved JSON output to data/judgments/{job_id}.json
+```
+
+---
+
+**Step 3: Preview Parsed Chunks (Optional)**
+
+```powershell
+python -c "import requests, json; r = requests.get('http://localhost:8000/api/judgments/{job_id}/preview'); data = r.json(); print(json.dumps(data, indent=2)[:2000])"
+```
+
+**Verify:**
+- `total_chunks` count
+- Global metadata (case_title, court, outcome, year)
+- Sample chunk structure (text_for_embedding, supporting_quote, metadata)
+
+**Check Generated JSON File:**
+- Location: `backend/data/judgments/{job_id}.json`
+- Contains all 396 atomic units with full metadata
+
+---
+
+**Step 4: Confirm Job & Start Indexing**
+
+```powershell
+python -c "import requests; r = requests.post('http://localhost:8000/api/judgments/{job_id}/confirm'); print(r.json())"
+```
+
+**Expected Response:**
+```json
+{
+  "job_id": "cc601e04-...",
+  "status": "indexing",
+  "message": "Judgment indexing started in background"
+}
+```
+
+**Server Console Output:**
+```
+Starting judgment indexing: 396 chunks, batch size: 10
+Embedding batch 1: 10 chunks
+Got 10 embeddings
+Inserted batch 1 to MongoDB
+Embedding batch 2: 10 chunks
+...
+Judgment indexing completed successfully
+```
+
+---
+
+**Step 5: Wait for Completion**
+
+```powershell
+# Monitor every 30 seconds
+python -c "import requests; r = requests.get('http://localhost:8000/api/judgments/{job_id}/status'); print(r.json())"
+```
+
+**Final Status (completed):**
+```json
+{
+  "job_id": "cc601e04-...",
+  "status": "completed",
+  "filename": "Smt_Noor_Jahan_Begum...",
+  "error": null,
+  "summary": {
+    "case_title": "Smt. Noor Jahan Begum @ Anjali Mishra vs State",
+    "court_name": "HIGH COURT OF JUDICATURE AT ALLAHABAD",
+    "city": "ALLAHABAD",
+    "year_of_judgment": 2014,
+    "outcome": "Dismissed",
+    "winning_party": "State",
+    "total_chunks": 396,
+    "errors": 0,
+    "warnings": 2
+  }
+}
+```
+
+---
+
+**Step 6: Verify MongoDB Storage**
+
+```powershell
+python -c "from pymongo import MongoClient; import os; from dotenv import load_dotenv; load_dotenv(); client = MongoClient(os.getenv('MONGO_URI')); db = client[os.getenv('MONGO_DB')]; collection = db[os.getenv('MONGO_COLLECTION_CHUNKS')]; count = collection.count_documents({'document_type': 'judgment'}); print('Total judgment chunks:', count); sample = collection.find_one({'document_type': 'judgment'}); print('Sample chunk ID:', sample['_id']); print('Has embedding:', 'embedding' in sample); print('Embedding dimension:', len(sample.get('embedding', [])))"
+```
+
+**Expected Output:**
+```
+Total judgment chunks: 396
+Sample chunk ID: Smt_Noor_Jahan_Begum_...
+Has embedding: True
+Embedding dimension: 1024
+```
+
+**MongoDB Document Structure:**
+```javascript
+{
+  "_id": "Smt_Noor_Jahan_Begum_0_5",
+  "chunk_id": "Smt_Noor_Jahan_Begum_0_5",
+  "text_for_embedding": "The Petitioner argued that the FIR was delayed.",
+  "supporting_quote": "argued that the FIR was lodged with a delay",
+  "embedding": [0.123, -0.456, ..., 0.789], // 1024 floats
+  "document_type": "judgment",
+  "created_at": ISODate("2024-01-22T05:32:52Z"),
+  "metadata": {
+    "parent_doc": "Smt_Noor_Jahan_Begum...",
+    "case_title": "Smt. Noor Jahan Begum @ Anjali Mishra vs State",
+    "court_name": "HIGH COURT OF JUDICATURE AT ALLAHABAD",
+    "city": "ALLAHABAD",
+    "year_of_judgment": 2014,
+    "outcome": "Dismissed",
+    "winning_party": "State",
+    "section_type": "Submission_Petitioner",
+    "party_role": "Petitioner",
+    "legal_topics": ["Delay in FIR"],
+    "original_context": "..."
+  }
+}
+```
+
+---
+
+#### Use Case Metadata Mapping
+
+**Viability Predictor ("Can I Win?"):**
+
+Query filters based on:
+- `metadata.outcome` - Match similar outcomes
+- `metadata.court_name` - Filter by court level
+- `metadata.year_of_judgment` - Recent precedents (last 5-10 years)
+- `metadata.legal_topics` - Match topic similarity
+- `metadata.winning_party` - Pattern analysis
+
+**Example Query:**
+```javascript
+// Find cases with similar facts dismissed by High Courts
+db.legal_chunks_v1.find({
+  "document_type": "judgment",
+  "metadata.outcome": "Dismissed",
+  "metadata.court_name": {$regex: "High Court", $options: "i"},
+  "metadata.legal_topics": {$in: ["Delay in FIR", "Witness Credibility"]},
+  "metadata.year_of_judgment": {$gte: 2015}
+})
+```
+
+---
+
+**Argument Miner ("What Should I Say?"):**
+
+Query filters based on:
+- `metadata.section_type` - "Submission_Petitioner" or "Submission_Respondent"
+- `metadata.party_role` - "Petitioner", "Respondent", "Counsel"
+- `metadata.winning_party` - Identify winning arguments
+- `metadata.outcome` - Filter by favorable outcomes
+- `text_for_embedding` - Semantic similarity to user's scenario
+
+**Example Query:**
+```javascript
+// Find winning petitioner arguments in acquittal cases
+db.legal_chunks_v1.find({
+  "document_type": "judgment",
+  "metadata.section_type": "Submission_Petitioner",
+  "metadata.outcome": "Acquitted",
+  "metadata.winning_party": "Petitioner",
+  "metadata.legal_topics": {$in: ["Self Defense", "Evidence Tampering"]}
+})
+```
+
+---
+
+**Clause Search (Drafting Aid):**
+
+Query filters based on:
+- `metadata.section_type` - "Operative_Order" (for prayer clauses)
+- `metadata.section_type` - "Court_Observation" (for reasoning)
+- `metadata.outcome` - Match desired outcome type
+- `supporting_quote` - Exact quoted phrases
+- Vector similarity on `text_for_embedding`
+
+**Example Query:**
+```javascript
+// Find prayer clauses from quashing cases
+db.legal_chunks_v1.find({
+  "document_type": "judgment",
+  "metadata.section_type": "Operative_Order",
+  "metadata.outcome": {$in: ["Allowed", "Quashed"]},
+  "$text": {$search: "quash FIR continuation abuse process"}
+})
+```
+
+---
+
+#### Troubleshooting
+
+**Issue: Parsing Timeout**
+- **Cause**: Groq rate limits (~30 req/min)
+- **Solution**: Use manual API testing (allows full 6-7 min processing time)
+
+**Issue: JSON Parse Error with Hindi/Urdu text**
+- **Cause**: LLM returns untranslated text from judgment
+- **Handled**: Paragraph skipped, added to warnings
+- **Impact**: Minimal - typically 1-2 paragraphs per judgment
+
+**Issue: LLM Typos (e.g., "Submission_Couurt")**
+- **Cause**: LLM makes spelling mistakes under time pressure
+- **Handled**: Chunk skipped, added to warnings
+- **Impact**: ~1-2% of chunks rejected
+
+**Issue: "Counsel" not valid PartyRole**
+- **Status**: Fixed in commit 21b4fdb9
+- **Solution**: Added COUNSEL to PartyRole enum
 
 
 ## Application Features
