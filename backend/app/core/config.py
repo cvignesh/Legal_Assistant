@@ -40,6 +40,43 @@ class Settings(BaseSettings):
     FUZZY_MATCH_THRESHOLD: float = 0.60
     JUDGMENT_OUTPUT_DIR: str = "data/judgments"
 
+    # ============================================
+    # HYBRID SEARCH RETRIEVAL PIPELINE
+    # ============================================
+    
+    # MongoDB Atlas Search Index Names
+    VECTOR_INDEX_NAME: str = "vector_index"
+    TEXT_INDEX_NAME: str = "text_index"
+    
+    # Vector Search Configuration
+    VECTOR_SEARCH_TOP_K: int = 100
+    VECTOR_MIN_SCORE: float = 0.6
+    
+    # Keyword Search Configuration  
+    KEYWORD_SEARCH_TOP_K: int = 100
+    KEYWORD_MIN_SCORE: float = 0.3
+    
+    # Deduplication Strategy
+    DEDUP_METHOD: str = "id"  # Options: "id", "similarity", "both"
+    DEDUP_SIMILARITY_THRESHOLD: float = 0.95
+    
+    # Reranking Configuration
+    USE_COHERE_RERANK: bool = True
+    COHERE_API_KEY: Optional[str] = None
+    COHERE_RERANK_MODEL: str = "rerank-english-v3.0"
+    COHERE_RERANK_TOP_N: int = 20
+    
+    USE_LLM_RERANK: bool = True
+    LLM_RERANK_PROVIDER: str = "groq"  # Options: groq, openai, etc.
+    LLM_RERANK_API_KEY: Optional[str] = None  # Defaults to GROQ_API_KEY if None
+    LLM_RERANK_MODEL: str = "llama-3.3-70b-versatile"
+    LLM_RERANK_TEMPERATURE: float = 0.0
+    LLM_RERANK_TOP_N: int = 10
+    
+    # Score Fusion Weights (must sum to 1.0)
+    VECTOR_SCORE_WEIGHT: float = 0.7
+    KEYWORD_SCORE_WEIGHT: float = 0.3
+
     class Config:
         env_file = ".env"
         case_sensitive = True
