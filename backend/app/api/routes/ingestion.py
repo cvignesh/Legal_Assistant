@@ -1,6 +1,7 @@
 import shutil
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from typing import List
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
 
 from app.services.ingestion import ingestion_service, JobStatus
@@ -9,30 +10,54 @@ from app.services.parser.models import DocumentResult
 router = APIRouter()
 
 @router.post("/upload", response_model=dict)
-async def upload_document(file: UploadFile = File(...)):
+async def upload_document(files: List[UploadFile] = File(...)):
     """
-    Upload a PDF file to start the ingestion process.
-    Returns a job_id for tracking.
+    Upload one or more PDF files to start the ingestion process.
+    Returns a list of job_ids for tracking.
     """
-    if not file.filename.lower().endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="Only PDF files are supported")
-
-    # Save to temp file
-    try:
-        suffix = Path(file.filename).suffix
-        with NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            shutil.copyfileobj(file.file, tmp)
-            tmp_path = tmp.name
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save upload: {str(e)}")
-
-    # Create ingestion job
-    job_id = await ingestion_service.create_job(tmp_path, file.filename)
+    job_results = []
+    
+    for file in files:
+        if not file.filename.lower().endswith('.pdf'):
+            job_results.append({
+                "filename": file.filename,
+                "status": "rejected",
+                "error": "Only PDF files are supported"
+            })
+            continue
+        
+        # Save to temp file
+        try:
+            suffix = Path(file.filename).suffix
+            with NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                shutil.copyfileobj(file.file, tmp)
+                tmp_path = tmp.name
+        except Exception as e:
+            job_results.append({
+                "filename": file.filename,
+                "status": "failed",
+                "error": f"Failed to save upload: {str(e)}"
+            })
+            continue
+        
+        # Create ingestion job
+        try:
+            job_id = await ingestion_service.create_job(tmp_path, file.filename)
+            job_results.append({
+                "job_id": job_id,
+                "filename": file.filename,
+                "status": JobStatus.QUEUED
+            })
+        except Exception as e:
+            job_results.append({
+                "filename": file.filename,
+                "status": "failed",
+                "error": f"Failed to create job: {str(e)}"
+            })
     
     return {
-        "job_id": job_id,
-        "filename": file.filename,
-        "status": JobStatus.QUEUED
+        "total_uploaded": len(files),
+        "jobs": job_results
     }
 
 @router.get("/jobs", response_model=list)

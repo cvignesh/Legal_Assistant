@@ -41,30 +41,16 @@ const IngestionPage = () => {
         const fileArray = Array.from(files);
 
         try {
-            if (activeTab === 'judgments') {
-                // Batch upload for judgments
-                const response = await judgmentsAPI.upload(fileArray);
-                const newJobs: UploadJob[] = response.jobs.map(job => ({
-                    jobId: job.job_id,
-                    filename: job.filename,
-                    type: 'judgment',
-                    status: job.status,
-                    createdAt: new Date().toISOString(),
-                }));
-                setJobs(prev => [...newJobs, ...prev]);
-            } else {
-                // Single file for acts
-                const file = fileArray[0];
-                const response = await actsAPI.upload(file);
-                const newJob: UploadJob = {
-                    jobId: response.job_id,
-                    filename: response.filename,
-                    type: 'act',
-                    status: response.status,
-                    createdAt: new Date().toISOString(),
-                };
-                setJobs(prev => [newJob, ...prev]);
-            }
+            const api = activeTab === 'acts' ? actsAPI : judgmentsAPI;
+            const response = await api.upload(fileArray);
+            const newJobs: UploadJob[] = response.jobs.map(job => ({
+                jobId: job.job_id,
+                filename: job.filename,
+                type: activeTab === 'acts' ? 'act' : 'judgment',
+                status: job.status,
+                createdAt: new Date().toISOString(),
+            }));
+            setJobs(prev => [...newJobs, ...prev]);
         } catch (error: any) {
             console.error('Upload failed:', error);
             alert(`Upload failed: ${error.message}`);
@@ -147,7 +133,7 @@ const IngestionPage = () => {
                 <input
                     ref={fileInputRef}
                     type="file"
-                    multiple={activeTab === 'judgments'}
+                    multiple
                     accept=".pdf,.docx"
                     style={{ display: 'none' }}
                     onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
