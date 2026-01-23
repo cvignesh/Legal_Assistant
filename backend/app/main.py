@@ -22,10 +22,10 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Config
+# CORS Config - Allow all origins in development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=["*"],  # Allow all origins for development
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,7 +36,9 @@ async def health_check():
     return {"status": "ok", "db": settings.MONGO_DB}
 
 # Include Routers
-from app.api.routes import ingestion, judgments, search
+from app.api.routes import ingestion, judgments, search, chat
 app.include_router(ingestion.router, prefix="/api/ingest", tags=["Ingestion"])
 app.include_router(judgments.router, prefix="/api/judgments", tags=["Judgments"])
 app.include_router(search.router, prefix="/api", tags=["Search"])
+app.include_router(chat.router, prefix="/api", tags=["Chat"])
+
