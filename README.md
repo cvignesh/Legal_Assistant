@@ -210,17 +210,60 @@ Auto-confirm: Yes
 4. Monitor: `GET /api/ingest/{job_id}/status`
 5. Confirm: `POST /api/ingest/{job_id}/confirm`
 
+
 ---
 
-### 5. Frontend Setup (Optional)
+## 🖥️ Frontend Setup
+
+**Navigate to frontend directory:**
 
 ```bash
 cd frontend
+```
+
+**Install dependencies:**
+
+```bash
 npm install
+```
+
+**Configure API endpoint (Optional):**
+
+The frontend is pre-configured to proxy API requests to `http://localhost:8000`. If your backend runs on a different port, update `vite.config.ts`:
+
+```typescript
+server: {
+  proxy: {
+    '/api': 'http://localhost:YOUR_PORT'
+  }
+}
+```
+
+**Start development server:**
+
+```bash
 npm run dev
 ```
 
 **Frontend will start at:** `http://localhost:5173`
+
+**Available Features:**
+- 📁 **Document Upload** - Upload acts/laws and judgment PDFs with real-time progress tracking
+- 🔍 **Hybrid Search** - Search across all indexed legal documents
+- 💬 **Legal Chat** - Ask questions and get answers with source citations
+- ⚖️ **Case Analysis** - Viability prediction, argument mining, and clause search
+
+**Build for production:**
+
+```bash
+npm run build
+```
+
+**Preview production build:**
+
+```bash
+npm run preview
+```
 
 ---
 

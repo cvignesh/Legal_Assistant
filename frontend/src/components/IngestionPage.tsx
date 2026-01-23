@@ -74,19 +74,6 @@ const IngestionPage = () => {
         setIsDragging(false);
     };
 
-    const handleConfirm = async (jobId: string, type: 'act' | 'judgment') => {
-        try {
-            const api = type === 'act' ? actsAPI : judgmentsAPI;
-            await api.confirm(jobId);
-
-            setJobs(prev => prev.map(j =>
-                j.jobId === jobId ? { ...j, status: 'indexing' as JobStatus } : j
-            ));
-        } catch (error: any) {
-            alert(`Confirmation failed: ${error.message}`);
-        }
-    };
-
     const getStageInfo = (status: JobStatus) => {
         const stages = {
             queued: { label: 'Queued', stage: 0, color: 'grey' },
@@ -176,15 +163,6 @@ const IngestionPage = () => {
 
                                     {job.error && (
                                         <div className="error-message">❌ {job.error}</div>
-                                    )}
-
-                                    {job.status === 'preview_ready' && (
-                                        <button
-                                            className="confirm-btn"
-                                            onClick={() => handleConfirm(job.jobId, job.type)}
-                                        >
-                                            ✓ Review & Confirm
-                                        </button>
                                     )}
 
                                     {job.status === 'completed' && job.summary && (

@@ -66,7 +66,9 @@ class IngestionService:
                 job.error = "; ".join(result.errors)
             else:
                 job.result = result
-                job.status = JobStatus.PREVIEW_READY
+                # Auto-approve: proceed directly to indexing
+                job.status = JobStatus.INDEXING
+                asyncio.create_task(self._process_indexing(job))
                 
         except Exception as e:
             job.status = JobStatus.FAILED

@@ -76,7 +76,9 @@ class JudgmentIngestionService:
                 await self._save_json_output(result, json_path)
                 job.json_output_path = str(json_path)
                 
-                job.status = JobStatus.PREVIEW_READY
+                # Auto-approve: proceed directly to indexing
+                job.status = JobStatus.INDEXING
+                asyncio.create_task(self._process_indexing(job))
                 
         except Exception as e:
             job.status = JobStatus.FAILED
