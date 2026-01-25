@@ -3,6 +3,9 @@ Utility functions for PDF text extraction and pattern detection
 """
 import re
 import fitz  # PyMuPDF
+import pytesseract
+from PIL import Image
+import io
 from typing import List, Tuple, Optional, Dict
 from pathlib import Path
 from app.services.parser.models import ParsingMode
@@ -19,18 +22,23 @@ def extract_text_from_pdf(pdf_path: str) -> List[Tuple[int, str]]:
     pages = []
     
     for i, page in enumerate(doc):
-        # Determine page width/height to set clip
-        w = page.rect.width
-        h = page.rect.height
+        # -------------------------
+        # Try normal text extraction
+        # -------------------------
+        text = page.get_text("text").strip()
         
-        # Define clip box (ignore top 5%, bottom 5%, and very edges)
-        # This helps exclude running headers/footers and side margin notes
-        # Standard A4 is ~595 pts width.
-        # Main text usually ends around 480 pts. Margin notes start around 485 pts.
-        # We set right clip to w - 110 to exclude margin notes.
-        clip_rect = fitz.Rect(30, 40, w - 110, h - 40)
-        
-        text = page.get_text(clip=clip_rect)
+        # Fallback to OCR if text extraction yields empty result
+        if not text:
+            # Get pixmap (render page to image)
+            pix = page.get_pixmap(dpi=200)
+            img = Image.open(io.BytesIO(pix.tobytes()))
+            
+            # Perform OCR
+            text = pytesseract.image_to_string(
+                img,
+                config="--oem 3 --psm 6"
+            )
+
         pages.append((i + 1, text))  # 1-indexed page number
     
     doc.close()

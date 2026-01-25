@@ -7,7 +7,7 @@ motor==3.6.0           # Async MongoDB driver (compatible with pymongo 4.x)
 langchain==0.1.9
 langchain-groq==0.1.0   # Updated for judgment processing
 langchain-mistralai==0.0.5
-pymupdf==1.24.0         # Updated for judgment processing (fitz)
+pymupdf==1.26.7         # Updated for judgment processing (fitz)
 python-dotenv==1.0.1
 requests==2.31.0
 aiofiles==23.2.1
@@ -17,3 +17,5 @@ tenacity==8.2.3        # Retry logic
 pytest==7.4.4
 pytest-asyncio==0.21.1
 httpx==0.25.2          # Async HTTP client for testing (compatible with mistralai)
+pytesseract
+Pillow

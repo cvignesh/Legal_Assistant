@@ -1,0 +1,13 @@
+
+# Environment Variables
+.env
+
+# Python
+__pycache__/
+*.pyc
+venv/
+env/
+
+# Data
+*.pdf
+pytessart.py

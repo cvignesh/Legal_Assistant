@@ -26,7 +26,7 @@ import asyncio
 from typing import List, Dict, Any
 from pathlib import Path
 from difflib import SequenceMatcher
-import fitz  # PyMuPDF
+from app.services.parser.utils import extract_text_from_pdf
 
 from langchain_groq import ChatGroq
 from langchain.schema import SystemMessage, HumanMessage
@@ -101,12 +101,15 @@ class JudgmentParser:
         )
     
     def extract_text_with_pymupdf(self, file_path: str) -> str:
-        """Parses PDF using PyMuPDF (fitz) for speed and accuracy."""
-        doc = fitz.open(file_path)
-        full_text = ""
-        for page in doc:
-            full_text += page.get_text() + "\n"
-        return full_text
+        """Parses PDF using shared utility with OCR fallback."""
+        try:
+            pages = extract_text_from_pdf(file_path)
+            # Combine text from all pages
+            full_text = "\n".join([page_text for _, page_text in pages])
+            return full_text
+        except Exception as e:
+            print(f"Error extracting text: {e}")
+            raise
 
     def clean_text(self, text: str) -> str:
         """Sanitizes text artifacts."""
