@@ -6,7 +6,7 @@ from typing import Optional
 
 from app.services.parser.models import LegalChunk, ParsingMode, ChunkMetadata, DocumentResult
 from app.services.parser.strategies import NarrativeStrategy, StrictStrategy, ScheduleStrategy
-from app.services.parser.utils import extract_text_from_pdf, detect_act_name, detect_parsing_mode, detect_chapters
+from app.services.parser.utils import extract_text_from_pdf, detect_act_name, detect_parsing_mode, detect_chapters, detect_document_type
 from app.services.parser.strategies import get_strategy
 
 
@@ -66,6 +66,21 @@ class ParserManager:
                 total_chunks=0,
                 chunks=[],
                 errors=["No pages extracted from PDF"]
+            )
+            
+        # Check Document Type
+        combined_text = "\n".join([t for _, t in pages[:5]])
+        doc_type = detect_document_type(combined_text)
+        if doc_type == "JUDGMENT":
+             return DocumentResult(
+                filename=pdf_path.name,
+                act_name="Invalid",
+                act_short="Invalid",
+                parsing_mode=ParsingMode.NARRATIVE,
+                total_pages=len(pages),
+                total_chunks=0,
+                chunks=[],
+                errors=["Error: This document appears to be a Judgment. Please upload it via the Judgment Parsing Service."]
             )
         
         # Step 2: Detect act name

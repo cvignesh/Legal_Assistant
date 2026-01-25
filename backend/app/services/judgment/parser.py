@@ -26,7 +26,7 @@ import asyncio
 from typing import List, Dict, Any
 from pathlib import Path
 from difflib import SequenceMatcher
-from app.services.parser.utils import extract_text_from_pdf
+from app.services.parser.utils import extract_text_from_pdf, detect_document_type
 
 from langchain_groq import ChatGroq
 from langchain.schema import SystemMessage, HumanMessage
@@ -297,6 +297,19 @@ class JudgmentParser:
 
         # 2. CLEAN
         clean_doc = self.clean_text(raw_text)
+        
+        # Check Document Type
+        doc_type = detect_document_type(clean_doc[:10000])
+        if doc_type == "ACT":
+            error_msg = "Error: This document appears to be an Act/Statute. Please upload it via the Act Ingestion Service."
+            print(f"❌ {error_msg}")
+            errors.append(error_msg)
+            return JudgmentResult(
+                filename=filename,
+                total_chunks=0,
+                chunks=[],
+                errors=errors
+            )
         
         # 3. GLOBAL CONTEXT
         print("   🔍 Extracting Global Metadata...")

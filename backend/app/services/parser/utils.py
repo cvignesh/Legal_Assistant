@@ -11,6 +11,54 @@ from pathlib import Path
 from app.services.parser.models import ParsingMode
 
 
+def detect_document_type(text: str) -> str:
+    """
+    Heuristic detection of document type (ACT vs JUDGMENT).
+    Returns: "ACT", "JUDGMENT", or "UNKNOWN"
+    """
+    text_lower = text[:10000].lower() # Scan first 10k chars
+
+    # Significant keywords for Judgments
+    judgment_scores = 0
+    if "versus" in text_lower or " vs." in text_lower or " v." in text_lower:
+        judgment_scores += 2
+    if "appellant" in text_lower or "respondent" in text_lower:
+        judgment_scores += 1
+    if "petitioner" in text_lower or "plaintiff" in text_lower or "defendant" in text_lower:
+        judgment_scores += 1
+    if "judgment" in text_lower or "order" in text_lower:
+        judgment_scores += 1
+    if "reportable" in text_lower or "non-reportable" in text_lower:
+        judgment_scores += 2
+    if "civil appeal" in text_lower or "criminal appeal" in text_lower or "writ petition" in text_lower:
+        judgment_scores += 3
+    if "court" in text_lower and ("high" in text_lower or "supreme" in text_lower or "tribunal" in text_lower):
+        judgment_scores += 1
+
+    # Significant keywords for Acts
+    act_scores = 0
+    if "act, 19" in text_lower or "act, 20" in text_lower: # Year
+        act_scores += 3
+    if "no." in text_lower and "of" in text_lower and ("19" in text_lower or "20" in text_lower): # Act No. X of 19XX
+        act_scores += 2
+    if "be it enacted" in text_lower:
+        act_scores += 5
+    if "short title" in text_lower and "commencement" in text_lower: # Standard section 1
+        act_scores += 3
+    if "definitions" in text_lower and "context" in text_lower and "requires" in text_lower: # Standard section 2
+        act_scores += 2
+    if "legislative department" in text_lower or "ministry of law" in text_lower:
+        act_scores += 1
+
+    if judgment_scores > act_scores and judgment_scores >= 3:
+        return "JUDGMENT"
+    if act_scores > judgment_scores and act_scores >= 2:
+        return "ACT"
+    
+    return "UNKNOWN"
+
+
+
 def extract_text_from_pdf(pdf_path: str) -> List[Tuple[int, str]]:
     """
     Extract text from all pages of a PDF using PyMuPDF.
