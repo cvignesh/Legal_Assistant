@@ -151,6 +151,10 @@ async def hybrid_search(query: SearchQuery) -> SearchResponse:
         merged_results = merge_and_score(vector_results, keyword_results)
         logger.info(f"Merged: {vector_count} vector + {keyword_count} keyword → {len(merged_results)} total")
         
+        # Filter by final hybrid score threshold
+        merged_results = [r for r in merged_results if r.get("score", 0.0) >= settings.HYBRID_MIN_SCORE]
+        logger.info(f"After hybrid threshold filter: {len(merged_results)} results")
+        
         # Step 3: Deduplication
         deduplicated_results = deduplicate(merged_results)
         dedup_count = len(deduplicated_results)
@@ -177,6 +181,16 @@ async def hybrid_search(query: SearchQuery) -> SearchResponse:
             )
         else:
             final_results = cohere_reranked[:query.top_k]
+            
+        # Final Filter: Drop results with low reranker scores
+        # STRICT SAFETY GATE: Drop anything < 0.01 to prevent zero-score junk
+        final_results = [doc for doc in final_results if doc.get("score", 0.0) >= settings.HYBRID_MIN_SCORE or doc.get("score", 0.0) < 0.01]
+        # Wait, logical error above. Fix: Keep if score >= threshold AND score > 0.01
+        final_results = [
+            doc for doc in final_results 
+            if doc.get("score", 0.0) >= settings.HYBRID_MIN_SCORE and doc.get("score", 0.0) > 0.01
+        ]
+        logger.info(f"Final results after reranker filter: {len(final_results)}")
         
         # Convert to SearchResult models
         search_results = []

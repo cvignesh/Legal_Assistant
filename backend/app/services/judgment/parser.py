@@ -335,10 +335,28 @@ class JudgmentParser:
                 # Construct the Chunk
                 chunk_id = f"{Path(filename).stem}_{i}_{j}"
                 
+                # Construct rich context string for embedding
+                # This ensures the embedding vector captures the "Who, Where, When" context
+                case_title = global_meta.get("case_title") or "Unknown"
+                year = str(global_meta.get("year_of_judgment") or "Unknown")
+                court = global_meta.get("court_name") or "Unknown"
+                outcome = global_meta.get("outcome", "Unknown")
+                
+                section = unit.get("section_type", "Fact")
+                role = unit.get("party_role", "None")
+                topics = ", ".join(unit.get("legal_topics", [])) if unit.get("legal_topics") else "None"
+                content = unit.get("content", "")
+                
+                rich_embedding_text = (
+                    f"Case: {case_title} | Year: {year} | Court: {court} | Outcome: {outcome}\n"
+                    f"Section: {section} | Role: {role} | Topics: {topics}\n"
+                    f"Content:\n{content}"
+                )
+
                 try:
                     chunk = JudgmentChunk(
                         chunk_id=chunk_id,
-                        text_for_embedding=unit.get("content", ""),
+                        text_for_embedding=rich_embedding_text,
                         supporting_quote=unit.get("supporting_quote", ""),
                         metadata=JudgmentMetadata(
                             # Global Layers
@@ -358,7 +376,7 @@ class JudgmentParser:
                     )
                     
                     # Only add if we have valid content
-                    if chunk.text_for_embedding:
+                    if content:
                         final_chunks.append(chunk)
                         
                 except Exception as e:

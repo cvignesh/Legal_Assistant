@@ -1981,3 +1981,55 @@ tests/
 | **Viability** | Outcome Accuracy | `correct_predictions / total_predictions` |
 | **Argument Miner** | Argument Coverage | `found_arguments / expected_arguments` |
 | **Clause Search** | Quote Exactness | `Levenshtein similarity to source` |
+
+---
+
+## Judgment Ingestion UI (Brainstorming)
+
+> [!NOTE]
+> **User Request**: Visual progress tracking (loading icons) and job management without backend code changes.
+
+### 1. Dashboard Layout
+
+**Target**: `src/pages/IngestionDashboard.tsx`
+
+| Component | Function |
+| :--- | :--- |
+| **Upload Zone** | Drag-and-drop area accepting multiple PDFs. Shows upload progress bar. |
+| **Active Jobs Table** | Real-time list of processing jobs. Polls `/api/judgments/jobs` every 5s. |
+| **History Tab** | Paginated list of completed/failed jobs. |
+
+### 2. Status Visualization
+
+Map backend statuses to UI elements:
+
+| Status | Icon | Visual State | Action Button |
+| :--- | :---: | :--- | :--- |
+| `queued` | 🕒 (Gray Clock) | "Waiting..." | Cancel |
+| `parsing` | 🌀 (Blue Spinner) | "Parsing PDF... (Step 1/3)" | - |
+| `preview_ready` | 👁️ (Yellow Eye) | "Review Needed" | **[Review & Confirm]** |
+| `indexing` | ☁️ (Purple Cloud) | "Indexing to Vector DB..." | - |
+| `completed` | ✅ (Green Check) | "Ready" | [View JSON] |
+| `failed` | ❌ (Red Alert) | "Error" | [Retry] |
+
+### 3. "Review & Confirm" Modal
+
+When user clicks **[Review & Confirm]**:
+1.  **Metadata Form**: Editable fields for `Case Title`, `Court`, `Outcome`.
+    *   *Why?* LLM sometimes gets the Case Title slightly wrong.
+2.  **Chunk Preview**: Scrollable list of first 5 chunks.
+    *   Display `supporting_quote` highlighting to prove accuracy.
+3.  **Confirm Button**: Calls `/api/judgments/{job_id}/confirm`.
+
+### 4. Progress Modal (Detailed View)
+
+Clicking a "Parsing" job opens a modal with a **Step Stepper**:
+
+1.  **Upload** ✅
+2.  **Map Layout** (PyMuPDF) ✅
+3.  **Extract Metadata** (LLM) 🌀 *Processing...*
+4.  **Atomize Paragraphs** (LLM) ⚪ *Pending*
+5.  **Validate Quotes** ⚪ *Pending*
+
+*Note: Requires backend to expose granular progress (future V2 feature).*
+Current V1 just shows "Parsing" spinner.

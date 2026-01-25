@@ -56,6 +56,9 @@ class Settings(BaseSettings):
     KEYWORD_SEARCH_TOP_K: int = 100
     KEYWORD_MIN_SCORE: float = 0.3
     
+    # Hybrid Search - Final threshold after fusion/normalization
+    HYBRID_MIN_SCORE: float = 0.4
+    
     # Deduplication Strategy
     DEDUP_METHOD: str = "id"  # Options: "id", "similarity", "both"
     DEDUP_SIMILARITY_THRESHOLD: float = 0.95

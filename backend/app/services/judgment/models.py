@@ -74,7 +74,7 @@ class JudgmentMetadata(BaseModel):
 class JudgmentChunk(BaseModel):
     """A single atomic unit from a judgment"""
     chunk_id: str = Field(..., description="Unique ID")
-    text_for_embedding: str = Field(..., description="Content to embed and index")
+    text_for_embedding: str = Field(..., description="Composite content (Metadata + Text) to embed and index")
     supporting_quote: str = Field(..., description="Exact quote from source validating this chunk")
     metadata: JudgmentMetadata
 
