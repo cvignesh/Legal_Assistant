@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, IconButton, Paper, Typography, TextField, Stack, Chip, Tooltip, CircularProgress } from '@mui/material';
+import { Box, IconButton, Paper, Typography, TextField, Tooltip, CircularProgress } from '@mui/material';
 import ChatIcon from '@mui/icons-material/Chat';
 import CloseIcon from '@mui/icons-material/Close';
 import SendIcon from '@mui/icons-material/Send';
 import ClearIcon from '@mui/icons-material/ClearAll';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import AddIcon from '@mui/icons-material/Add';
+import CitationCard from './CitationCard';
 
 interface Citation {
     chunk_id: string;
@@ -81,6 +81,7 @@ const ChatBot: React.FC = () => {
             });
 
             const data = await response.json();
+            console.log('[ChatBot] Received response:', data);
 
             const assistantMessage: Message = {
                 role: 'assistant',
@@ -235,26 +236,21 @@ const ChatBot: React.FC = () => {
                                                 {msg.content}
                                             </Typography>
 
-                                            {msg.citations && msg.citations.filter(c => c.score > 0.1).length > 0 && (
-                                                <Box sx={{ mt: 1 }}>
-                                                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold' }}>
-                                                        📎 Sources:
+
+                                            {msg.citations && msg.citations.length > 0 && (
+                                                <Box sx={{ mt: 2, pt: 1, borderTop: 1, borderColor: 'divider' }}>
+                                                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                        ⚖️ Legal Sources ({msg.citations.length})
                                                     </Typography>
-                                                    <Stack direction="row" spacing={0.5} flexWrap="wrap" sx={{ mt: 0.5 }}>
-                                                        {msg.citations
-                                                            .filter(c => c.score > 0.1)
-                                                            .map((citation, cidx) => (
-                                                                <Tooltip key={cidx} title={`${citation.text.substring(0, 100)}...`}>
-                                                                    <Chip
-                                                                        label={`${citation.source.substring(0, 30)} (${citation.score.toFixed(2)})`}
-                                                                        size="small"
-                                                                        onClick={() => copyCitation(citation.text)}
-                                                                        icon={<ContentCopyIcon fontSize="small" />}
-                                                                        sx={{ fontSize: '0.7rem', height: 'auto', py: 0.5 }}
-                                                                    />
-                                                                </Tooltip>
-                                                            ))}
-                                                    </Stack>
+                                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                                                        {msg.citations.map((citation, cidx) => (
+                                                            <CitationCard
+                                                                key={cidx}
+                                                                citation={citation}
+                                                                onCopy={(text) => copyCitation(text)}
+                                                            />
+                                                        ))}
+                                                    </Box>
                                                 </Box>
                                             )}
                                         </Paper>

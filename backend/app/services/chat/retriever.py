@@ -44,7 +44,14 @@ class ChatbotRetriever(BaseRetriever):
             documents = []
             for result in search_response.results:
                 # Start with original content
-                page_content = result.text_for_embedding
+                # CLEANUP: Parser adds a header like "Case: ... | Content:\n". We must strip it.
+                raw_text = result.text_for_embedding
+                if "Content:\n" in raw_text:
+                    # Split by the separator used in ingestion (app/services/judgment/parser.py)
+                    # Take the last part which is the actual text
+                    page_content = raw_text.split("Content:\n")[-1].strip()
+                else:
+                    page_content = raw_text
                 
                 # INJECT METADATA INTO CONTEXT (Safe handling of null values)
                 doc_type = result.document_type
