@@ -1,4 +1,4 @@
-__pycache__/
+    __pycache__/
 *.py[cod]
 *.class
 *.so
@@ -15,3 +15,4 @@ _legacy_poc/*.parquet
 RAGLegalAssistant/
 .DS_Store
 backend/data/
+backend/.env
