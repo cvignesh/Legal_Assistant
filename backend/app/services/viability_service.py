@@ -88,7 +88,7 @@ class ViabilityService:
             print(f"Fact extraction failed: {e}")
             return raw_input  # Fallback to raw input
 
-    async def _generate_advice(self, user_facts: str, top_cases: List[Dict]) -> str:
+    async def _generate_advice(self, user_facts: str, top_cases: List[Dict], stats: Dict[str, float]) -> str:
         """Step 4: Generate strategic insight using LLM"""
         try:
             # Format top cases for prompt
@@ -101,7 +101,19 @@ class ViabilityService:
                     f"   Context: {case.get('text_for_embedding')[:200]}...\n\n"
                 )
             
-            prompt = f"User Facts: {user_facts}\n\nTop Precedents:\n{case_summaries}"
+            # Contextualize with overall stats
+            stats_context = (
+                f"Overall Viability Score: {stats['score']:.1f}%\n"
+                f"Total Similar Cases: {stats['valid_cases']}\n"
+                f"Favorable Precedents: {int(stats['favorable_count'])}\n"
+            )
+
+            prompt = (
+                f"User Facts: {user_facts}\n\n"
+                f"Statistical Context:\n{stats_context}\n\n"
+                f"Top 3 Similar Precedents:\n{case_summaries}\n"
+                f"Instruction: Explain the viability score. If the top cases contradict the low/high score, explain why the broader trend matters."
+            )
             
             response = await asyncio.to_thread(
                 self.llm.invoke,
@@ -198,10 +210,19 @@ class ViabilityService:
         
         # Filter Results (Min Score & Valid Metadata)
         relevant_cases = []
+        seen_cases = set()
+        
         for result in search_response.results:
             # Re-verify score threshold just in case
             if result.score < settings.VIABILITY_MIN_SCORE:
                 continue
+            
+            # CASE-LEVEL DEDUPLICATION: Ensure 1 Vote per Case
+            case_title = result.metadata.get("case_title", "Unknown")
+            if case_title in seen_cases and case_title != "Unknown":
+                continue
+                
+            seen_cases.add(case_title)
             relevant_cases.append(result)
             
         # 3. Scoring
@@ -229,7 +250,7 @@ class ViabilityService:
             for r in relevant_cases
         ]
         
-        advice = await self._generate_advice(search_query_text, top_case_dicts)
+        advice = await self._generate_advice(search_query_text, top_case_dicts, stats)
         
         # 5. Format Output
         # Return top 5 precedents for UI display

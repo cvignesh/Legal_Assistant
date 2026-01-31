@@ -419,13 +419,18 @@ class JudgmentParser:
         
         print(f"   ✅ Extracted {len(final_chunks)} atomic units")
         
+        # Normalize Outcome
+        raw_outcome = global_meta.get("outcome", "Unknown")
+        if raw_outcome == "Partially Allowed":
+            raw_outcome = "Partly Allowed"
+
         return JudgmentResult(
             filename=filename,
             case_title=global_meta.get("case_title"),
             court_name=global_meta.get("court_name"),
             city=global_meta.get("city"),
             year_of_judgment=global_meta.get("year_of_judgment"),
-            outcome=Outcome(global_meta.get("outcome", "Unknown")),
+            outcome=Outcome(raw_outcome),
             winning_party=WinningParty(global_meta.get("winning_party", "None")),
             total_chunks=len(final_chunks),
             chunks=final_chunks,
