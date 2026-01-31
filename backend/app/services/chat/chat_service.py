@@ -7,6 +7,7 @@ import uuid
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI
 from app.core.config import settings
 from app.services.chat.retriever import ChatbotRetriever
 from app.services.chat.models import ChatRequest, ChatResponse, Citation
@@ -23,15 +24,28 @@ class ChatService:
     """RAG-based chat service with conversation memory"""
     
     def __init__(self):
-        # Initialize LLM
-        self.llm = ChatGroq(
-            api_key=settings.GROQ_API_KEY,
-            model=settings.LLM_MODEL,
-            temperature=settings.LLM_TEMPERATURE
-        )
+        # Initialize LLM based on provider
+        provider = settings.LLM_PROVIDER.lower()
+        
+        if provider == "openai":
+            logger.info(f"Initializing ChatService with OpenAI model: {settings.LLM_MODEL}")
+            self.llm = ChatOpenAI(
+                api_key=settings.LLM_API_KEY,
+                model=settings.LLM_MODEL,
+                temperature=settings.LLM_TEMPERATURE
+            )
+        elif provider == "groq":
+            logger.info(f"Initializing ChatService with Groq model: {settings.LLM_MODEL}")
+            self.llm = ChatGroq(
+                api_key=settings.LLM_API_KEY,  # Use generic LLM_API_KEY instead of GROQ_API_KEY
+                model=settings.LLM_MODEL,
+                temperature=settings.LLM_TEMPERATURE
+            )
+        else:
+            raise ValueError(f"Unsupported LLM_PROVIDER: {provider}")
         
         # Initialize retriever (chatbot-specific with metadata enrichment)
-        self.retriever = ChatbotRetriever(top_k=5)
+        self.retriever = ChatbotRetriever(top_k=settings.CHAT_RETRIEVAL_TOP_K)
     
     def get_or_create_session(self, session_id: str) -> ConversationBufferMemory:
         """Get existing session or create new one"""
@@ -112,13 +126,41 @@ class ChatService:
             # Get or create conversation memory
             memory = self.get_or_create_session(request.session_id)
             
-            # Create conversational retrieval chain
+            # Strict RAG Prompt
+            from langchain.prompts import PromptTemplate
+            
+            rag_prompt_template = """
+You are a Legal Assistant AI that answers questions strictly based on the provided context.
+
+CONTEXT:
+{context}
+
+CHAT HISTORY:
+{chat_history}
+
+QUESTION: {question}
+
+GUIDELINES:
+1. USE ONLY THE CONTEXT ABOVE. Do not use your internal knowledge.
+2. If the answer is not in the context, say "I cannot find information about this in the projected case laws or acts." regarding the specific question.
+3. CITE SOURCES. Mention the Case Title, Court, or Section ID from the context in your answer.
+4. If the context contains judgment chunks, use the metadata (Case, Court, Verdict) to frame your answer.
+
+ANSWER:
+"""
+            RAG_PROMPT = PromptTemplate(
+                template=rag_prompt_template, 
+                input_variables=["context", "chat_history", "question"]
+            )
+
+            # Create conversational retrieval chain with custom prompt
             chain = ConversationalRetrievalChain.from_llm(
                 llm=self.llm,
                 retriever=self.retriever,
                 memory=memory,
                 return_source_documents=True,
-                verbose=True
+                verbose=True,
+                combine_docs_chain_kwargs={"prompt": RAG_PROMPT}
             )
             
             # Invoke chain

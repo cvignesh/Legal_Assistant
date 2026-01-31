@@ -44,6 +44,30 @@ async def keyword_search(
         
         # Add filters using compound search if provided
         if filters:
+            atlas_filters = []
+            for key, value in filters.items():
+                if key == "document_type":
+                    atlas_filters.append({
+                        "equals": {
+                            "path": "document_type",
+                            "value": value
+                        }
+                    })
+                elif isinstance(value, dict) and ("$gte" in value or "$lte" in value):
+                     # Handle range query
+                     range_query = {"path": key}
+                     if "$gte" in value: range_query["gte"] = value["$gte"]
+                     if "$lte" in value: range_query["lte"] = value["$lte"]
+                     atlas_filters.append({"range": range_query})
+                else:
+                    # Fallback to phrase match for string fields
+                    atlas_filters.append({
+                        "text": {
+                            "query": value,
+                            "path": key
+                        }
+                    })
+
             search_stage["$search"] = {
                 "index": settings.TEXT_INDEX_NAME,
                 "compound": {
@@ -53,7 +77,7 @@ async def keyword_search(
                             "path": ["text_for_embedding", "raw_content", "supporting_quote"]
                         }
                     }],
-                    "filter": list(filters.items()) if isinstance(filters, dict) else filters
+                    "filter": atlas_filters
                 }
             }
         

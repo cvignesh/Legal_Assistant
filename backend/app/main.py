@@ -41,4 +41,6 @@ app.include_router(ingestion.router, prefix="/api/ingest", tags=["Ingestion"])
 app.include_router(judgments.router, prefix="/api/judgments", tags=["Judgments"])
 app.include_router(search.router, prefix="/api", tags=["Search"])
 app.include_router(chat.router, prefix="/api", tags=["Chat"])
+from app.api.routes import viability
+app.include_router(viability.router, prefix="/api/viability", tags=["Viability"])
 

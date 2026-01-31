@@ -33,3 +33,22 @@ export interface JobStatusResponse {
     error?: string;
     summary?: any;
 }
+
+export interface Precedent {
+    case_title: string;
+    court: string;
+    year: string | number | null;
+    outcome: string;
+    score: number;
+    snippet: string;
+}
+
+export interface PredictionResult {
+    viability_score: number;
+    viability_label: string;
+    total_analyzed: number;
+    favorable_count: number;
+    top_precedents: Precedent[];
+    strategic_advice: string;
+}
+

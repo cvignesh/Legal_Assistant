@@ -29,6 +29,7 @@ from difflib import SequenceMatcher
 from app.services.parser.utils import extract_text_from_pdf, detect_document_type
 
 from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI
 from langchain.schema import SystemMessage, HumanMessage
 
 from app.core.config import settings
@@ -92,14 +93,27 @@ Return a strictly valid JSON LIST. Example:
 
 class JudgmentParser:
     def __init__(self):
-        """Initialize parser with LLM client"""
-        self.llm = ChatGroq(
-            api_key=settings.GROQ_API_KEY,
-            model=settings.GROQ_MODEL,
-            temperature=settings.GROQ_TEMPERATURE,
-            max_retries=2
-        )
-    
+        """Initialize parser with LLM client based on provider"""
+        provider = settings.LLM_PROVIDER.lower()
+        
+        if provider == "openai":
+            print(f"   ⚙️ JudgmentParser using OpenAI model: {settings.LLM_MODEL}")
+            self.llm = ChatOpenAI(
+                api_key=settings.LLM_API_KEY,
+                model=settings.LLM_MODEL,
+                temperature=settings.GROQ_TEMPERATURE, # Use same low temp
+                max_retries=2
+            )
+        elif provider == "groq":
+            print(f"   ⚙️ JudgmentParser using Groq model: {settings.GROQ_MODEL}")
+            self.llm = ChatGroq(
+                api_key=settings.GROQ_API_KEY,
+                model=settings.GROQ_MODEL, # Use specialized ingestion model
+                temperature=settings.GROQ_TEMPERATURE,
+                max_retries=2
+            )
+        else:
+            raise ValueError(f"Unsupported LLM_PROVIDER: {provider}")    
     def extract_text_with_pymupdf(self, file_path: str) -> str:
         """Parses PDF using shared utility with OCR fallback."""
         try:
@@ -314,6 +328,9 @@ class JudgmentParser:
         # 3. GLOBAL CONTEXT
         print("   🔍 Extracting Global Metadata...")
         global_meta = await self.get_global_metadata(clean_doc)
+        print(f"      Case: {global_meta.get('case_title')}")
+        print(f"      Court: {global_meta.get('court_name')} ({global_meta.get('city')})")
+        print(f"      Year: {global_meta.get('year_of_judgment')}")
         print(f"      Verdict: {global_meta.get('outcome')} | Winner: {global_meta.get('winning_party')}")
         
         paragraphs = clean_doc.split('\n\n')

@@ -42,6 +42,7 @@ class Outcome(str, Enum):
     ACQUITTED = "Acquitted"
     CONVICTED = "Convicted"
     DISPOSED = "Disposed"
+    PARTLY_ALLOWED = "Partly Allowed"
     UNKNOWN = "Unknown"
 
 

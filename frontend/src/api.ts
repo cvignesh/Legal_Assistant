@@ -51,3 +51,15 @@ export const judgmentsAPI = {
         return data;
     }
 };
+
+// Viability API
+export const viabilityAPI = {
+    predict: async (facts: string, role: string, courtFilter: string) => {
+        const { data } = await api.post('/viability', {
+            facts,
+            user_role: role,
+            court_filter: courtFilter
+        });
+        return data;
+    }
+};

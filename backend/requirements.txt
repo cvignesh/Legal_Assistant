@@ -7,6 +7,7 @@ motor==3.6.0           # Async MongoDB driver (compatible with pymongo 4.x)
 langchain==0.1.9
 langchain-groq==0.1.0   # Updated for judgment processing
 langchain-mistralai==0.0.5
+langchain-openai==0.0.8
 pymupdf==1.26.7         # Updated for judgment processing (fitz)
 python-dotenv==1.0.1
 requests==2.31.0

@@ -57,11 +57,11 @@ class Settings(BaseSettings):
     KEYWORD_MIN_SCORE: float = 0.3
     
     # Hybrid Search - Final threshold after fusion/normalization
-    HYBRID_MIN_SCORE: float = 0.4
+    HYBRID_MIN_SCORE: float = 0.05
     
     # Deduplication Strategy
-    DEDUP_METHOD: str = "id"  # Options: "id", "similarity", "both"
-    DEDUP_SIMILARITY_THRESHOLD: float = 0.95
+    DEDUP_METHOD: str = "both"  # Options: "id", "similarity", "both"
+    DEDUP_SIMILARITY_THRESHOLD: float = 0.85
     
     # Reranking Configuration
     USE_COHERE_RERANK: bool = True
@@ -79,6 +79,18 @@ class Settings(BaseSettings):
     # Score Fusion Weights (must sum to 1.0)
     VECTOR_SCORE_WEIGHT: float = 0.7
     KEYWORD_SCORE_WEIGHT: float = 0.3
+    
+    # Chat Configuration
+    CHAT_RETRIEVAL_TOP_K: int = 20
+
+    # ============================================
+    # VIABILITY PREDICTOR CONFIGURATION
+    # ============================================
+    VIABILITY_RETRIEVAL_TOP_K: int = 50
+    VIABILITY_RERANK_TOP_N: int = 20
+    VIABILITY_MIN_SCORE: float = 0.60
+    VIABILITY_HIGH_PROB_THRESHOLD: float = 0.70
+    VIABILITY_LOW_PROB_THRESHOLD: float = 0.40
 
     class Config:
         env_file = ".env"
