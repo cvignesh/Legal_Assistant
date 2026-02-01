@@ -50,6 +50,7 @@ You are a Legal Data Extractor.
 Task: Analyze the text to extract global case details.
 Output must be strictly valid JSON with these keys:
 - "case_title": (String or null)
+- "case_number": (String or null, e.g., "H.C.P.(MD) No.633 of 2019")
 - "outcome": (One of: "Dismissed", "Allowed", "Acquitted", "Convicted", "Disposed", "Unknown")
 - "winning_party": (One of: "Petitioner", "Respondent", "State", "None")
 - "court_name": (Full name of the court, String or null)
@@ -75,6 +76,17 @@ Task: Break the provided paragraph into "Atomic Units" (standalone statements) b
 4. **TABLES & STATISTICS**: If extracting data from a table, the `supporting_quote` MUST be the exact distinct cell value or contiguous row text found in the raw input. 
    - DO NOT construct sentences like 'The total was X' if the text only says 'Total | X'.
    - Just quote 'X' or 'Total'.
+
+5. **PRESERVE DETAILS**: Your atomic `content` must be comprehensive. Do NOT summarize away specific details like Dates, Amounts, Names, or Conditions.
+   - BAD: "The accused was found with contraband."
+   - GOOD: "The accused was found with 500g of Heroin on 12th Jan 2023."
+
+6. **GRANULARITY**: Split compound sentences into separate atomic units.
+   - Input: "The court dismissed the petition and imposed a fine of Rs 5000."
+   - Output Unit 1: "The court dismissed the petition."
+   - Output Unit 2: "The court imposed a fine of Rs 5000."
+
+7. **COMPLETE COVERAGE**: Do NOT omit any clause, condition, or side-note. Every meaningful distinct fact in the text must be represented by an atomic unit. If a sentence has 3 distinct facts, generate 3 atomic units.
 
 ### CLASSIFICATION RULES ###
 - `section_type`: ["Fact", "Submission_Petitioner", "Submission_Respondent", "Court_Observation", "Statute_Citation", "Operative_Order"]
@@ -226,6 +238,7 @@ class JudgmentParser:
                 "outcome": "Unknown",
                 "winning_party": "Unknown",
                 "city": None,
+                "case_number": None,
                 "year_of_judgment": None
             }
 
@@ -340,6 +353,7 @@ class JudgmentParser:
         print("   🔍 Extracting Global Metadata...")
         global_meta = await self.get_global_metadata(clean_doc)
         print(f"      Case: {global_meta.get('case_title')}")
+        print(f"      Case No: {global_meta.get('case_number')}")
         print(f"      Court: {global_meta.get('court_name')} ({global_meta.get('city')})")
         print(f"      Year: {global_meta.get('year_of_judgment')}")
         print(f"      Verdict: {global_meta.get('outcome')} | Winner: {global_meta.get('winning_party')}")
@@ -382,6 +396,7 @@ class JudgmentParser:
                 # Construct rich context string for embedding
                 # This ensures the embedding vector captures the "Who, Where, When" context
                 case_title = global_meta.get("case_title") or "Unknown"
+                case_number = global_meta.get("case_number") or ""
                 year = str(global_meta.get("year_of_judgment") or "Unknown")
                 court = global_meta.get("court_name") or "Unknown"
                 outcome = global_meta.get("outcome", "Unknown")
@@ -392,9 +407,10 @@ class JudgmentParser:
                 content = unit.get("content", "")
                 
                 rich_embedding_text = (
-                    f"Case: {case_title} | Year: {year} | Court: {court} | Outcome: {outcome}\n"
+                    f"Case: {case_title} | No: {case_number} | Year: {year} | Court: {court} | Outcome: {outcome}\n"
                     f"Section: {section} | Role: {role} | Topics: {topics}\n"
-                    f"Content:\n{content}"
+                    f"Content:\n{content}\n"
+                    f"Quote:\n{unit.get('supporting_quote', '')}"
                 )
 
                 try:
@@ -406,6 +422,7 @@ class JudgmentParser:
                             # Global Layers
                             parent_doc=filename,
                             case_title=global_meta.get("case_title"),
+                            case_number=global_meta.get("case_number"),
                             court_name=global_meta.get("court_name"),
                             city=global_meta.get("city"),
                             year_of_judgment=global_meta.get("year_of_judgment"),
