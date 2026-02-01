@@ -6,6 +6,7 @@ A production-grade AI assistant for **Indian Laws, Acts & Case Law (Judgments)**
 
 > [!IMPORTANT]
 > **External Services Required**: Ensure all API keys are configured in `.env` before running.
+> **Runtime Required**: Python 3.12+
 
 | Service | Purpose | Provider |
 | :--- | :--- | :--- |
