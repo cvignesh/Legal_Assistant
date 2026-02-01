@@ -28,9 +28,19 @@ class ChatRequest(BaseModel):
     message: str = Field(..., description="User's message")
 
 
+class GroupedSource(BaseModel):
+    """Grouped source combining multiple chunks from same document"""
+    id: str
+    title: str
+    doc_url: Optional[str] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    chunks: List[Citation]
+
+
 class ChatResponse(BaseModel):
     """Response from chat endpoint"""
     session_id: str
     answer: str
-    citations: List[Citation]
+    citations: List[Citation]  # Kept for backward compatibility
+    sources: List[GroupedSource] = Field(default_factory=list)
     processing_time_ms: float

@@ -72,6 +72,10 @@ Task: Break the provided paragraph into "Atomic Units" (standalone statements) b
 
 3. **PRONOUN RESOLUTION**: Replace pronouns (He/She/It) with names (e.g., "The Petitioner"), BUT ensure the identity is derived strictly from the immediate context.
 
+4. **TABLES & STATISTICS**: If extracting data from a table, the `supporting_quote` MUST be the exact distinct cell value or contiguous row text found in the raw input. 
+   - DO NOT construct sentences like 'The total was X' if the text only says 'Total | X'.
+   - Just quote 'X' or 'Total'.
+
 ### CLASSIFICATION RULES ###
 - `section_type`: ["Fact", "Submission_Petitioner", "Submission_Respondent", "Court_Observation", "Statute_Citation", "Operative_Order"]
 - `party_role`: ["Petitioner", "Respondent", "Court", "Witness", "Prosecution", "Counsel", "Police", "Advocates", "None"]
@@ -309,6 +313,13 @@ class JudgmentParser:
                 errors=errors
             )
 
+        # 1b. EXTRACT DOC URL (Regex)
+        # Look for pattern: http://indiankanoon.org/doc/123456/
+        doc_url_match = re.search(r'http://indiankanoon\.org/doc/\d+/?', raw_text, re.IGNORECASE)
+        doc_url = doc_url_match.group(0) if doc_url_match else None
+        if doc_url:
+            print(f"   🔗 Found Document URL: {doc_url}")
+
         # 2. CLEAN
         clean_doc = self.clean_text(raw_text)
         
@@ -400,6 +411,7 @@ class JudgmentParser:
                             year_of_judgment=global_meta.get("year_of_judgment"),
                             outcome=global_meta.get("outcome", "Unknown"),
                             winning_party=global_meta.get("winning_party", "None"),
+                            doc_url=doc_url,  # Inject extracted URL
                             # Local Layers
                             section_type=unit.get("section_type", "Fact"),
                             party_role=unit.get("party_role", "None"),

@@ -62,6 +62,7 @@ class JudgmentMetadata(BaseModel):
     court_name: Optional[str] = Field(None, description="Name of the court")
     city: Optional[str] = Field(None, description="City where court is located")
     year_of_judgment: Optional[int] = Field(None, description="Year judgment was delivered")
+    doc_url: Optional[str] = Field(None, description="URL to original document (e.g. Indian Kanoon)")
     outcome: str = Field(default="Unknown", description="Judgment outcome")
     winning_party: str = Field(default="None", description="Winning party")
     

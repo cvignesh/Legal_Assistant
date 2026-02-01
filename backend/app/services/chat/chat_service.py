@@ -110,6 +110,43 @@ class ChatService:
         chunk_id = metadata.get("chunk_id", "")
         return chunk_id if chunk_id else "Legal Document"
     
+    def group_citations(self, citations: List[Citation]) -> List['GroupedSource']:
+        """Group citations by Case/Act"""
+        from app.services.chat.models import GroupedSource
+        
+        groups = {}
+        for cit in citations:
+            meta = cit.metadata
+            doc_type = meta.get("document_type", "unknown")
+            
+            # Key Construction
+            if doc_type == "judgment":
+                key = meta.get("case_title") or meta.get("filename") or "Unknown Case"
+                year = meta.get("year_of_judgment")
+                title = f"{key} ({year})" if year else key
+                doc_url = meta.get("doc_url")
+            elif doc_type == "act":
+                key = meta.get("act_name") or "Unknown Act"
+                title = key
+                doc_url = None
+            else:
+                key = "Other Documents"
+                title = key
+                doc_url = None
+                
+            if key not in groups:
+                groups[key] = {
+                    "id": key,
+                    "title": title,
+                    "doc_url": doc_url,
+                    "metadata": meta,
+                    "chunks": []
+                }
+            
+            groups[key]["chunks"].append(cit)
+            
+        return [GroupedSource(**g) for g in groups.values()]
+
     async def chat(self, request: ChatRequest) -> ChatResponse:
         """
         Process a chat message with RAG and conversation memory
@@ -142,9 +179,10 @@ QUESTION: {question}
 
 GUIDELINES:
 1. USE ONLY THE CONTEXT ABOVE. Do not use your internal knowledge.
-2. If the answer is not in the context, say "I cannot find information about this in the projected case laws or acts." regarding the specific question.
-3. CITE SOURCES. Mention the Case Title, Court, or Section ID from the context in your answer.
-4. If the context contains judgment chunks, use the metadata (Case, Court, Verdict) to frame your answer.
+2. If the answer is not in the context, say "I cannot find information about this in the projected case laws or acts." instructions.
+3. CONCISE CITATIONS: When mentioning a case, integrate it naturally (e.g., "In Ananthi vs The District Registrar (2023)..."). Do NOT repeat the full citation at the end of the sentence if you already mentioned it.
+4. VERDICTS: State the outcome naturally (e.g., "The court allowed the petition"). Do NOT paste raw metadata strings like "Verdict: Allowed | Winner: Petitioner".
+5. Answer directly and professionally.
 
 ANSWER:
 """
@@ -172,6 +210,7 @@ ANSWER:
             
             # Create citations
             citations = self.extract_citations(source_docs)
+            sources = self.group_citations(citations)
             
             # Calculate processing time
             processing_time = (time.time() - start_time) * 1000
@@ -182,6 +221,7 @@ ANSWER:
                 session_id=request.session_id,
                 answer=answer,
                 citations=citations,
+                sources=sources,
                 processing_time_ms=round(processing_time, 2)
             )
             

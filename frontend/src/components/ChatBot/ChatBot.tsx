@@ -6,6 +6,7 @@ import SendIcon from '@mui/icons-material/Send';
 import ClearIcon from '@mui/icons-material/ClearAll';
 import AddIcon from '@mui/icons-material/Add';
 import CitationCard from './CitationCard';
+import SourceCard, { GroupedSource } from './SourceCard';
 
 interface Citation {
     chunk_id: string;
@@ -19,6 +20,7 @@ interface Message {
     role: 'user' | 'assistant';
     content: string;
     citations?: Citation[];
+    sources?: GroupedSource[];
     timestamp: Date;
 }
 
@@ -87,6 +89,7 @@ const ChatBot: React.FC = () => {
                 role: 'assistant',
                 content: data.answer,
                 citations: data.citations,
+                sources: data.sources,
                 timestamp: new Date(),
             };
 
@@ -237,7 +240,23 @@ const ChatBot: React.FC = () => {
                                             </Typography>
 
 
-                                            {msg.citations && msg.citations.length > 0 && (
+                                            {/* Sources Section */}
+                                            {(msg.sources && msg.sources.length > 0) ? (
+                                                <Box sx={{ mt: 2, pt: 1, borderTop: 1, borderColor: 'divider' }}>
+                                                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                        ⚖️ Sources ({msg.sources.length})
+                                                    </Typography>
+                                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                                                        {msg.sources.map((source, sidx) => (
+                                                            <SourceCard
+                                                                key={sidx}
+                                                                source={source}
+                                                                onCopy={(text) => copyCitation(text)}
+                                                            />
+                                                        ))}
+                                                    </Box>
+                                                </Box>
+                                            ) : (msg.citations && msg.citations.length > 0) && (
                                                 <Box sx={{ mt: 2, pt: 1, borderTop: 1, borderColor: 'divider' }}>
                                                     <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                                         ⚖️ Legal Sources ({msg.citations.length})
