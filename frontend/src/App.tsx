@@ -3,6 +3,7 @@ import { Box, Tabs, Tab, AppBar, Toolbar, Typography, Container, CssBaseline, Th
 import IngestionPage from './components/IngestionPage';
 import ChatBot from './components/ChatBot';
 import ViabilityPredictor from './components/ViabilityPredictor';
+import ChatAssistantPage from './components/ChatAssistantPage';
 
 const theme = createTheme({
     palette: {
@@ -38,7 +39,7 @@ function TabPanel(props: { children?: React.ReactNode; index: number; value: num
 function App() {
     const [value, setValue] = useState(0);
 
-    const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+    const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
         setValue(newValue);
     };
 
@@ -56,6 +57,7 @@ function App() {
                         <Tab label="Ingestion" />
                         <Tab label="Chat Assistant" />
                         <Tab label="Viability Predictor" />
+                        <Tab label="CHAT ASSISTANT (New)" />
                     </Tabs>
                 </AppBar>
 
@@ -68,6 +70,9 @@ function App() {
                     </TabPanel>
                     <TabPanel value={value} index={2}>
                         <ViabilityPredictor />
+                    </TabPanel>
+                    <TabPanel value={value} index={3}>
+                        <ChatAssistantPage />
                     </TabPanel>
                 </Container>
             </Box>
