@@ -3,6 +3,7 @@ import { Box, Tabs, Tab, AppBar, Toolbar, Typography, Container, CssBaseline, Th
 import IngestionPage from './components/IngestionPage';
 import ChatBot from './components/ChatBot';
 import ViabilityPredictor from './components/ViabilityPredictor';
+
 import ChatAssistantPage from './components/ChatAssistantPage';
 
 const theme = createTheme({
@@ -57,7 +58,6 @@ function App() {
                         <Tab label="Ingestion" />
                         <Tab label="Chat Assistant" />
                         <Tab label="Viability Predictor" />
-                        <Tab label="CHAT ASSISTANT (New)" />
                     </Tabs>
                 </AppBar>
 
@@ -66,15 +66,14 @@ function App() {
                         <IngestionPage />
                     </TabPanel>
                     <TabPanel value={value} index={1}>
-                        <ChatBot />
+                        <ChatAssistantPage />
                     </TabPanel>
                     <TabPanel value={value} index={2}>
                         <ViabilityPredictor />
                     </TabPanel>
-                    <TabPanel value={value} index={3}>
-                        <ChatAssistantPage />
-                    </TabPanel>
                 </Container>
+                {/* Global Floating ChatBot */}
+                <ChatBot />
             </Box>
         </ThemeProvider>
     );
