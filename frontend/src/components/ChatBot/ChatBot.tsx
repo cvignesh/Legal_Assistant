@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, IconButton, Paper, Typography, TextField, Tooltip, CircularProgress } from '@mui/material';
+import { Box, IconButton, Paper, Typography, TextField, Tooltip, CircularProgress, Chip } from '@mui/material';
 import ChatIcon from '@mui/icons-material/Chat';
 import CloseIcon from '@mui/icons-material/Close';
 import SendIcon from '@mui/icons-material/Send';
 import ClearIcon from '@mui/icons-material/ClearAll';
 import AddIcon from '@mui/icons-material/Add';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import WarningIcon from '@mui/icons-material/Warning';
+import SecurityIcon from '@mui/icons-material/Security';
 import CitationCard from './CitationCard';
 import SourceCard, { GroupedSource } from './SourceCard';
 
@@ -21,6 +24,7 @@ interface Message {
     content: string;
     citations?: Citation[];
     sources?: GroupedSource[];
+    guardrail_actions?: string[];
     timestamp: Date;
 }
 
@@ -90,6 +94,7 @@ const ChatBot: React.FC = () => {
                 content: data.answer,
                 citations: data.citations,
                 sources: data.sources,
+                guardrail_actions: data.guardrail_actions,
                 timestamp: new Date(),
             };
 
@@ -239,6 +244,36 @@ const ChatBot: React.FC = () => {
                                                 {msg.content}
                                             </Typography>
 
+                                            {/* Guardrails Badges */}
+                                            {msg.guardrail_actions && msg.guardrail_actions.length > 0 && (
+                                                <Box sx={{ mt: 1, mb: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                                    {msg.guardrail_actions.map((action, aidx) => {
+                                                        let color: "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning" = "default";
+                                                        let icon = <SecurityIcon fontSize="small" />;
+
+                                                        if (action.includes("Blocked") || action.includes("Violation") || action.includes("Safety") || action.includes("Injection")) {
+                                                            color = "error";
+                                                            icon = <WarningIcon fontSize="small" />;
+                                                        }
+                                                        else if (action.includes("Redacted")) color = "warning";
+                                                        else if (action.includes("Verified") || action.includes("Citation")) {
+                                                            color = "success";
+                                                            icon = <VerifiedUserIcon fontSize="small" />;
+                                                        }
+
+                                                        return (
+                                                            <Chip
+                                                                key={aidx}
+                                                                label={action}
+                                                                size="small"
+                                                                color={color}
+                                                                icon={icon}
+                                                                variant="outlined"
+                                                            />
+                                                        );
+                                                    })}
+                                                </Box>
+                                            )}
 
                                             {/* Sources Section */}
                                             {(msg.sources && msg.sources.length > 0) ? (

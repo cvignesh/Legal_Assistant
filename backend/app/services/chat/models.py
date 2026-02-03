@@ -43,4 +43,5 @@ class ChatResponse(BaseModel):
     answer: str
     citations: List[Citation]  # Kept for backward compatibility
     sources: List[GroupedSource] = Field(default_factory=list)
+    guardrail_actions: List[str] = Field(default_factory=list, description="List of actions taken by guardrails (e.g., 'PII Redacted', 'Prompt Injection Blocked')")
     processing_time_ms: float

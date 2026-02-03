@@ -5,6 +5,7 @@ pydantic>=2.6.1
 pydantic-settings>=2.1.0
 motor>=3.6.0           # Async MongoDB driver (compatible with pymongo 4.x)
 langchain>=0.1.9
+langchain-core<0.3.0
 langchain-groq>=0.1.0   # Updated for judgment processing
 langchain-mistralai>=0.0.5
 langchain-openai>=0.0.8
@@ -20,3 +21,4 @@ pytest-asyncio>=0.21.1
 httpx>=0.25.2          # Async HTTP client for testing (compatible with mistralai)
 pytesseract
 Pillow
+

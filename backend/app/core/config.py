@@ -92,6 +92,9 @@ class Settings(BaseSettings):
     VIABILITY_HIGH_PROB_THRESHOLD: float = 0.70
     VIABILITY_LOW_PROB_THRESHOLD: float = 0.40
 
+    # Guardrails Service
+    GUARDRAILS_API_URL: str = "http://localhost:8001"
+
     class Config:
         env_file = ".env"
         case_sensitive = True
