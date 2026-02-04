@@ -66,9 +66,9 @@ export const viabilityAPI = {
 
 // Argument Miner API
 export async function runArgumentMiner(payload: {
-  mode: "case" | "facts" | "hybrid";
-  case_id?: string;
-  facts?: string;
+    mode: "case" | "facts";
+    case_id?: string;
+    facts?: string;
 }) {
   const res = await fetch("/api/argument-miner", {
     method: "POST",

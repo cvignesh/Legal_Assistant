@@ -31,7 +31,7 @@ async def run_argument_miner(
     """
 
     # Validate mode
-    if mode not in ("case", "facts", "hybrid"):
+    if mode not in ("case", "facts"):
         raise ValueError("Invalid mode for argument miner")
 
     try:
@@ -44,12 +44,6 @@ async def run_argument_miner(
             if not facts:
                 raise ValueError("facts are required for facts mode")
             args = await mine_arguments_from_facts(facts)
-
-        else:  # hybrid
-            if not case_id or not facts:
-                raise ValueError("case_id and facts are required for hybrid mode")
-            case_args = await mine_from_case(case_id)
-            args = await merge_case_and_facts(case_args, facts)
 
         # Safety check: ensure args is a dict
         if not args or not isinstance(args, dict):

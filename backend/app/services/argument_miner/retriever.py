@@ -49,7 +49,10 @@ async def retrieve_arguments(
         "metadata.case_number": case_id
     }
 
-    logger.info(f"Retrieving {role} arguments for case_number={case_id} with filters: {filters}")
+    logger.info(f"Retrieving {role} arguments for case_number={case_id}")
+    print(f"[RETRIEVER] Filters: {filters}")
+    print(f"[RETRIEVER] Query: {ARGUMENT_QUERY_HINT}")
+    print(f"[RETRIEVER] top_k: {top_k}")
 
     results = await vector_search(
         query=ARGUMENT_QUERY_HINT,
@@ -63,3 +66,4 @@ async def retrieve_arguments(
         logger.info(f"      Section Type: {chunk.get('metadata', {}).get('section_type', 'N/A')}")
         logger.info(f"      Raw Content (first 200 chars): {chunk.get('raw_content', '')[:200]}")
         logger.info(f"      Text for Embedding (first 200 chars): {chunk.get('text_for_embedding', '')[:200]}")
+    return results

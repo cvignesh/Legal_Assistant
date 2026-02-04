@@ -4,7 +4,7 @@ import { ArgumentMinerResponse } from "../types";
 
 const ArgumentMiner = () => {
   const [input, setInput] = useState("");
-  const [mode, setMode] = useState<"case" | "facts" | "hybrid">("facts");
+  const [mode, setMode] = useState<"case" | "facts">("facts");
   const [result, setResult] = useState<ArgumentMinerResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -14,9 +14,7 @@ const ArgumentMiner = () => {
       const payload =
         mode === "case"
           ? { mode, case_id: input }
-          : mode === "facts"
-          ? { mode, facts: input }
-          : { mode, case_id: input, facts: input };
+          : { mode, facts: input };
 
       const data = await runArgumentMiner(payload);
       setResult(data);
@@ -39,7 +37,7 @@ const ArgumentMiner = () => {
       >
         <option value="facts">Facts</option>
         <option value="case">Case ID</option>
-        <option value="hybrid">Hybrid</option>
+        {/* <option value="hybrid">Hybrid</option> */}
       </select>
 
       <textarea
