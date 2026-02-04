@@ -63,3 +63,25 @@ export const viabilityAPI = {
         return data;
     }
 };
+
+// Argument Miner API
+export async function runArgumentMiner(payload: {
+  mode: "case" | "facts" | "hybrid";
+  case_id?: string;
+  facts?: string;
+}) {
+  const res = await fetch("/api/argument-miner", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!res.ok) {
+    throw new Error("Argument Miner failed");
+  }
+
+  return res.json();
+}
+

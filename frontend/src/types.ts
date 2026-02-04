@@ -52,3 +52,11 @@ export interface PredictionResult {
     strategic_advice: string;
 }
 
+export interface ArgumentMinerResponse {
+    prosecution_arguments: string[];
+    defense_arguments: string[];
+    winning_argument: {
+        reasoning: string;
+        confidence: number;
+    };
+}

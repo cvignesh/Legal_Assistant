@@ -166,6 +166,16 @@ class JudgmentIngestionService:
                 docs = []
                 for chunk, embedding in zip(batch, embeddings):
                     doc = chunk.dict()
+                    # Ensure metadata contains a normalized case_id for retrieval
+                    try:
+                        meta = doc.get("metadata", {})
+                        # Prefer explicit case_number if present, else derive from filename
+                        case_num = meta.get("case_number") or job.filename
+                        # Simple normalization: strip surrounding whitespace
+                        meta["case_id"] = case_num.strip() if isinstance(case_num, str) else case_num
+                        doc["metadata"] = meta
+                    except Exception:
+                        pass
                     doc["embedding"] = embedding
                     doc["created_at"] = datetime.utcnow()
                     doc["_id"] = chunk.chunk_id  # Use deterministic ID

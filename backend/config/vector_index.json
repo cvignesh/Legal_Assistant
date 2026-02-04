@@ -1,0 +1,74 @@
+{
+  "fields": [
+    {
+      "numDimensions": 1024,
+      "path": "embedding",
+      "similarity": "cosine",
+      "type": "vector"
+    },
+    {
+      "path": "document_type",
+      "type": "filter"
+    },
+    {
+      "path": "metadata.act_name",
+      "type": "filter"
+    },
+    {
+      "path": "metadata.act_short",
+      "type": "filter"
+    },
+    {
+      "path": "metadata.chapter",
+      "type": "filter"
+    },
+    {
+      "path": "metadata.section_id",
+      "type": "filter"
+    },
+    {
+      "path": "metadata.chunk_type",
+      "type": "filter"
+    },
+    {
+      "path": "metadata.case_title",
+      "type": "filter"
+    },
+    {
+      "path": "metadata.case_number",
+      "type": "filter"
+    },
+    {
+      "path": "metadata.court_name",
+      "type": "filter"
+    },
+    {
+      "path": "metadata.city",
+      "type": "filter"
+    },
+    {
+      "path": "metadata.year_of_judgment",
+      "type": "filter"
+    },
+    {
+      "path": "metadata.outcome",
+      "type": "filter"
+    },
+    {
+      "path": "metadata.winning_party",
+      "type": "filter"
+    },
+    {
+      "path": "metadata.section_type",
+      "type": "filter"
+    },
+    {
+      "path": "metadata.party_role",
+      "type": "filter"
+    },
+    {
+      "path": "metadata.legal_topics",
+      "type": "filter"
+    }
+  ]
+}
