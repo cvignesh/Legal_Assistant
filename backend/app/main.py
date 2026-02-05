@@ -52,4 +52,6 @@ app.include_router(search.router, prefix="/api", tags=["Search"])
 app.include_router(chat.router, prefix="/api", tags=["Chat"])
 from app.api.routes import viability
 app.include_router(viability.router, prefix="/api/viability", tags=["Viability"])
+from app.api.routes import drafting
+app.include_router(drafting.router, prefix="/api/drafting", tags=["Drafting"])
 

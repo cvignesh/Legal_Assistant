@@ -7,7 +7,7 @@ import asyncio
 import json
 from pydantic import BaseModel, Field
 
-from langchain.schema import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 

@@ -28,6 +28,18 @@ interface Message {
     timestamp: Date;
 }
 
+const formatMessage = (text: string) => {
+    if (!text) return text;
+    // Split by **bold** text
+    const parts = text.split(/(\*\*[^\*]+\*\*)/g);
+    return parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={i}>{part.slice(2, -2)}</strong>;
+        }
+        return <span key={i}>{part}</span>;
+    });
+};
+
 const ChatBot: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([]);
@@ -234,14 +246,14 @@ const ChatBot: React.FC = () => {
                                                 maxWidth: '80%',
                                             }}
                                         >
-                                            <Typography variant="body2">{msg.content}</Typography>
+                                            <Typography variant="body2">{formatMessage(msg.content)}</Typography>
                                         </Paper>
                                     </Box>
                                 ) : (
                                     <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
                                         <Paper sx={{ p: 1.5, bgcolor: 'grey.100', maxWidth: '80%' }}>
                                             <Typography variant="body2" sx={{ mb: 1 }}>
-                                                {msg.content}
+                                                {formatMessage(msg.content)}
                                             </Typography>
 
                                             {/* Guardrails Badges */}

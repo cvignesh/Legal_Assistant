@@ -63,3 +63,14 @@ export const viabilityAPI = {
         return data;
     }
 };
+
+// Drafting API
+export const draftingAPI = {
+    generateDraft: async (userStory: string, documentType: string) => {
+        const { data } = await api.post('/drafting/generate', {
+            user_story: userStory,
+            document_type: documentType
+        });
+        return data;
+    }
+};
