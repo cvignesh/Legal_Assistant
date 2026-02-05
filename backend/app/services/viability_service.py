@@ -262,7 +262,8 @@ class ViabilityService:
                  "year": r.metadata.get("year_of_judgment", ""),
                  "outcome": r.metadata.get("outcome", "Unknown"),
                  "score": r.score,
-                 "snippet": r.text_for_embedding[:300] + "..."
+                 "snippet": r.text_for_embedding[:300] + "...",
+                 "pdf_url": r.metadata.get("doc_url", "")
              })
 
         return PredictionResult(
