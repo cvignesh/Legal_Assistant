@@ -16,3 +16,4 @@ RAGLegalAssistant/
 .DS_Store
 backend/data/
 backend/.env
+backend/legalvenv/

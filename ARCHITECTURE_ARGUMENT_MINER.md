@@ -1,131 +1,126 @@
 # Argument Miner Architecture & Workflow
 
 ## Overview
-The Argument Miner is a system designed to extract, normalize, and validate legal arguments from court judgments using retrieval-augmented generation (RAG) and LLM-based processing. It supports multiple modes (e.g., Facts, Case ID) and is built with a modular, service-oriented backend and a React frontend.
+The Argument Miner is an AI-powered legal analysis system that extracts, normalizes, classifies, and validates prosecution and defense arguments from court judgments using a Retrieval-Augmented Generation (RAG) pipeline combined with LLM processing.
+
+The system now includes:
+
+- Optimized Case Miner and Fact Miner pipelines
+- Enhanced Argument Normalizer
+- Integrated Argument Polarity Classifier
+- Faster retrieval and batching strategy
+- Improved UI performance through reduced LLM calls
+
+It supports multiple modes:
+
+- Case ID Mode – extracts arguments from a specific judgment
+- Facts Mode – uses user-provided facts as semantic retrieval signals
 
 ---
 
 ## High-Level Architecture
 
-```
 +-------------------+      +-------------------+      +-------------------+
 |   Frontend (UI)   | <--> |   FastAPI Backend | <--> |   MongoDB/Vector  |
 |  (React/TS)       |      |  (Python)         |      |   DB (Chunks)     |
 +-------------------+      +-------------------+      +-------------------+
-```
-
-- **Frontend**: User selects mode, enters query/case ID, views arguments.
-- **Backend**: Handles API requests, argument mining pipeline, LLM calls.
-- **Database**: Stores judgment chunks, metadata, and vector embeddings.
 
 ---
 
-## Detailed Workflow
+## Detailed Workflow (Updated Pipeline)
 
-### 1. User Request
-- User selects mode (e.g., Facts, Case ID) and submits a query or case ID via the frontend.
-- Frontend sends a request to `/api/argument-miner` with the relevant parameters.
-
-### 2. Backend Pipeline
-#### a. Routing
-- FastAPI endpoint receives the request and routes it to the appropriate miner (e.g., `fact_miner`, `case_miner`).
-
-#### b. Chunk Retrieval
-- The miner calls `retrieve_arguments` with filters (e.g., `case_number`, `section_type`).
-- `retrieve_arguments` uses `vector_search` to query the vector DB for relevant chunks.
-- Chunks are filtered by role (prosecution/defense) and case metadata.
-
-#### c. Normalization
-- Retrieved chunks are passed to `normalize_arguments`.
-- All chunk contents are batched and sent to the LLM with a prompt to extract only legal arguments.
-- The LLM returns a list of arguments, which are parsed and deduplicated.
-
-#### d. Validation (Optional)
-- Arguments can be validated using a separate LLM validator, which checks correctness and relevance.
-
-#### e. Response
-- The backend returns the final list of prosecution and defense arguments to the frontend.
-
-### 3. Frontend Display
-- Arguments are displayed in the UI, grouped by role.
+User Request → Router → Miner → Retriever → Normalizer → Polarity Classifier → Response
 
 ---
 
-## Key Components
+## Miner Execution
 
-### Backend
-- **FastAPI App**: Main entry point for API requests.
-- **argument_miner.service**: Orchestrates the mining pipeline.
-- **argument_miner.case_miner / fact_miner**: Mode-specific logic.
-- **argument_miner.retriever**: Handles chunk retrieval from the vector DB.
-- **argument_miner.normalizer**: Batches and normalizes arguments using LLM.
-- **argument_miner.llm_validator**: (Optional) Validates arguments with LLM.
-- **MongoDB/Vector DB**: Stores judgment chunks and embeddings.
+### Case Miner
+- Direct case metadata filtering
+- Combined prosecution and defense retrieval
+- Reduced redundant searches
+- Optimized chunk aggregation
 
-### Frontend
-- **React Components**: UI for input, mode selection, and argument display.
-- **API Layer**: Handles communication with the backend.
+### Fact Miner
+Facts are semantic retrieval signals.
+Facts → Embedding Search → Relevant Judgment Chunks
 
----
-
-## Data Flow Diagram
-
-```
-User (UI)
-   |
-   v
-[API Request]
-   |
-   v
-[FastAPI Endpoint]
-   |
-   v
-[Argument Miner Pipeline]
-   |    |    |
-   |    |    +--> [Retriever: vector_search + filters]
-   |    |          |
-   |    |          v
-   |    |      [Chunks]
-   |    |
-   |    +--> [Normalizer: LLM batch extraction]
-   |               |
-   |               v
-   |           [Arguments]
-   |
-   +--> [Validator: LLM (optional)]
-   |
-   v
-[API Response]
-   |
-   v
-User (UI)
-```
+Enhancements:
+- Multi-fact batching
+- Reduced retrieval duplication
+- Context-aware chunk merging
 
 ---
 
-## Implementation Notes
-- **Chunking**: Judgments are pre-processed into chunks with metadata (case number, section type, etc.) and embedded for vector search.
-- **Retrieval**: Uses semantic search with filters for role and case.
-- **LLM Normalization**: All chunk texts are batched for efficient LLM calls; output is parsed and deduplicated.
-- **Extensibility**: New modes or validators can be added by extending the miner pipeline.
-- **Logging**: Detailed logs at each stage for debugging and traceability.
+## Chunk Retrieval Layer
+
+Responsibilities:
+- Vector search
+- Metadata filtering
+- Chunk deduplication
+- Context merging
 
 ---
 
-## Example API Flow (Case ID Mode)
-1. User enters a case ID and selects "Case ID" mode.
-2. Frontend sends `{ "mode": "case_id", "case_id": "H.C.P(MD)No.633 of 2019" }` to backend.
-3. Backend retrieves prosecution and defense chunks for the case.
-4. Chunks are normalized in batch by the LLM.
-5. Deduplicated arguments are returned and displayed in the UI.
+## Argument Normalization
+
+- Single-batch LLM extraction
+- Structured argument formatting
+- Duplicate collapse
+- Noise removal
+
+Pipeline:
+Merged Chunks → Single LLM Call → Clean Argument List
 
 ---
 
-## References
-- `backend/app/services/argument_miner/`
-- `frontend/src/components/ArgumentMiner.tsx`
-- MongoDB/Vector DB schema for chunk storage
+## Argument Polarity Classifier
+
+Normalized Arguments → Polarity Classifier → Prosecution / Defense Buckets
+
+Benefits:
+- Argument-level role classification
+- Reduced metadata dependency
+- Handles mixed-role chunks
 
 ---
 
-For further details, see the code in the referenced backend and frontend files.
+## Optional Validation
+
+Checks:
+- Legal relevance
+- Context grounding
+- Argument correctness
+
+---
+
+## Updated Data Flow
+
+User → API Request → Router → Miner → Retriever → Normalizer → Polarity Classifier → Response → UI
+
+---
+
+## Key Backend Components
+
+- FastAPI App
+- argument_miner.service
+- case_miner
+- fact_miner
+- retriever
+- normalizer
+- polarity_classifier
+- llm_validator
+- MongoDB Vector Database
+
+---
+
+## Example Facts Mode Flow
+
+Facts Input → Semantic Retrieval → Merged Chunks → LLM Normalization → Polarity Classification → Arguments Output
+
+---
+
+## Hackathon Talking Point
+
+Facts are used only for semantic retrieval.
+Arguments are always extracted from retrieved legal judgment text.

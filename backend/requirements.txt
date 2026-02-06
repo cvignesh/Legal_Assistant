@@ -21,4 +21,6 @@ pytest-asyncio>=0.21.1
 httpx>=0.25.2          # Async HTTP client for testing (compatible with mistralai)
 pytesseract
 Pillow
+scikit-learn
+sentence-transformers
 

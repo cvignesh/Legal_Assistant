@@ -27,7 +27,7 @@ async def retrieve_arguments(
     *,
     case_id: str,
     role: str,
-    top_k: int = 20
+    top_k: int = 10
 ) -> List[Dict]:
     """
     Retrieve argument-related chunks for a given role
