@@ -19,6 +19,7 @@ from app.services.drafting.templates import (
     POLICE_COMPLAINT_TEMPLATE, MAGISTRATE_156_3_TEMPLATE,
     PRIVATE_COMPLAINT_TEMPLATE, LEGAL_NOTICE_TEMPLATE
 )
+from app.services.drafting.substantive import substantive_validator
 
 logger = logging.getLogger(__name__)
 
@@ -428,6 +429,9 @@ Keep it concise and practical."""
         
         # Step 3.5: Procedural Verification
         procedural_analysis = ProceduralValidator.validate(request.document_type, facts, issues, citations)
+
+        # Step 3.6: Substantive Analysis (Senior Lawyer Review)
+        substantive_gaps = await substantive_validator.analyze(request.user_story, issues)
         
         # Step 4: Drafting
         # Pass ALL issues to drafting, even if unverified (users might know better than empty DB)
@@ -439,7 +443,8 @@ Keep it concise and practical."""
             legal_issues=issues, # Return all identified issues
             citations=citations,
             validation_warnings=warnings,
-            procedural_analysis=procedural_analysis
+            procedural_analysis=procedural_analysis,
+            substantive_analysis=substantive_gaps
         )
 
 drafting_service = DraftingService()

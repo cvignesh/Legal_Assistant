@@ -96,6 +96,7 @@ export interface DraftingResponse {
     citations: ValidatedCitation[];
     validation_warnings: string[];
     procedural_analysis?: ProceduralAnalysis;
+    substantive_analysis?: SubstantiveGap[];
 }
 
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -106,4 +107,11 @@ export interface ProceduralAnalysis {
     missing_mandatory_components: string[];
     suggestions: string[];
     score: number;
+}
+
+export interface SubstantiveGap {
+    section: string;
+    missing_ingredient: string;
+    question: string;
+    strength_score: number;
 }

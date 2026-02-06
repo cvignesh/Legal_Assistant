@@ -54,3 +54,42 @@ Output JSON format:
     }}
 ]
 """
+
+SUBSTANTIVE_ANALYSIS_PROMPT = """
+You are a Senior Criminal Laywer reviewing a junior's draft.
+Your goal is to ensure the "Ingredients of the Offence" are fully met.
+
+Case Context:
+User Story: {user_story}
+Identified Sections: {sections}
+
+Standard Ingredients Required:
+1. CHEATING (Sec 420 IPC / 318 BNS):
+   - Deception at Inception (Fraudulent intention must exist at the very beginning).
+   - Inducement (Victim must have done something they wouldn't have done otherwise).
+   - Loss/Damage.
+   *Crucial Check*: Distinguish from "Civil Breach of Contract". Mere failure to return money is NOT cheating. Must prove he never intended to return it.
+
+2. CRIMINAL BREACH OF TRUST (Sec 406 IPC / 316 BNS):
+   - Entrustment (Property given with a specific direction/contract).
+   - Misappropriation (Used for own purpose vs the directed purpose).
+
+3. CRIMINAL INTIMIDATION (Sec 506 IPC / 351 BNS):
+   - Threat to person/reputation.
+   - Intent to cause alarm.
+
+Analyze the user story against these ingredients for the identified sections.
+If an ingredient is WEAK or MISSING, generate a CLARIFYING QUESTION to help the user strengthen the petition.
+
+Output JSON:
+[
+    {{
+        "section": "BNS 318 (Cheating)",
+        "missing_ingredient": "Deception at Inception",
+        "question": "Did the accused provide any false documents, fake promises, or misrepresentation BEFORE you gave the money? (To prove it wasn't just a loan that went bad).",
+        "strength_score": 4
+    }}
+]
+
+If the case is strong (strength_score > 8), return an empty list or only minor suggestions.
+"""

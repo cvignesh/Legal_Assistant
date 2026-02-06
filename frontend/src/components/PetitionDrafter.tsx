@@ -29,7 +29,8 @@ import {
     CheckCircle,
     Warning,
     Security,
-    ErrorOutline
+    ErrorOutline,
+    Psychology
 } from '@mui/icons-material';
 import { draftingAPI } from '../api';
 import { DraftingResponse, DocumentType } from '../types';
@@ -58,9 +59,15 @@ const PetitionDrafter: React.FC = () => {
     const [result, setResult] = useState<DraftingResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
+    const [fixValues, setFixValues] = useState<{ [key: string]: string }>({});
+    const [substantiveAnswers, setSubstantiveAnswers] = useState<{ [key: string]: string }>({});
+    const [resolvedItems, setResolvedItems] = useState<{ [key: string]: boolean }>({});
 
-    const handleGenerate = async () => {
-        if (!userStory.trim()) return;
+    const handleGenerate = async (overrideStory?: string, overrideType?: DocumentType) => {
+        const storyToUse = overrideStory || userStory;
+        const typeToUse = overrideType || documentType;
+
+        if (!storyToUse.trim()) return;
 
         setLoading(true);
         setLoadingStage(0);
@@ -76,7 +83,7 @@ const PetitionDrafter: React.FC = () => {
         }, 4000); // Change stage every 4 seconds
 
         try {
-            const data = await draftingAPI.generateDraft(userStory, documentType);
+            const data = await draftingAPI.generateDraft(storyToUse, typeToUse);
             clearInterval(stageInterval);
             setResult(data);
         } catch (err: any) {
@@ -86,6 +93,62 @@ const PetitionDrafter: React.FC = () => {
             setLoading(false);
             setLoadingStage(0);
         }
+    };
+
+    const handleFixIssue = (issueText: string) => {
+        // 1. Statutory Bar -> Switch to 200
+        if ((issueText.includes("Statutory Bar") && issueText.includes("Negotiable Instruments")) ||
+            (issueText.includes("Private Complaint") && issueText.includes("Section 200"))) {
+            const newType = 'private_complaint_200';
+            setDocumentType(newType); // UI update
+            setResolvedItems(prev => ({ ...prev, [issueText]: true }));
+        }
+        // 2. Missing Affidavit -> Append Confirmation
+        else if (issueText.includes("Affidavit")) {
+            const newStory = userStory + "\n\n[Procedural Compliance: I undertake to file a sworn affidavit in support of this petition as per Priyanka Srivastava guidelines.]";
+            setUserStory(newStory);
+            setResolvedItems(prev => ({ ...prev, [issueText]: true }));
+        }
+    };
+
+
+    const handleApplyFix = (itemText: string) => {
+        const value = fixValues[itemText];
+        if (!value) return;
+
+        let newStory = userStory;
+
+        // 1. Missing Police Complaint Date
+        if (itemText.includes("Local Police")) {
+            newStory += `\n\n[Procedural Fact: The complainant approached the local police station on ${value} to lodge a complaint, but no action was taken.]`;
+        }
+        // 2. Missing SP Representation Date
+        else if (itemText.includes("SP") || itemText.includes("DCP") || itemText.includes("Superior Officer")) {
+            newStory += `\n\n[Procedural Fact: The complainant sent a written representation to the Superintendent of Police (SP) on ${value} by registered post.]`;
+        }
+
+        setUserStory(newStory);
+        setFixValues(prev => {
+            const next = { ...prev };
+            delete next[itemText];
+            return next;
+        });
+        setResolvedItems(prev => ({ ...prev, [itemText]: true }));
+    };
+
+    const handleApplySubstantiveFix = (gapQuestion: string, section: string) => {
+        const answer = substantiveAnswers[gapQuestion];
+        if (!answer) return;
+
+        const newStory = userStory + `\n\n[Clarification regarding ${section}: ${answer}]`;
+        setUserStory(newStory);
+
+        setSubstantiveAnswers(prev => {
+            const next = { ...prev };
+            delete next[gapQuestion];
+            return next;
+        });
+        setResolvedItems(prev => ({ ...prev, [gapQuestion]: true }));
     };
 
     const handleCopyDraft = () => {
@@ -140,7 +203,7 @@ const PetitionDrafter: React.FC = () => {
                         <Button
                             variant="contained"
                             size="large"
-                            onClick={handleGenerate}
+                            onClick={() => handleGenerate()}
                             disabled={loading || !userStory}
                             startIcon={loading ? <CircularProgress size={20} /> : <Gavel />}
                             fullWidth
@@ -209,7 +272,25 @@ const PetitionDrafter: React.FC = () => {
                                             <Typography variant="subtitle2">Critical Procedural Issues:</Typography>
                                             <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
                                                 {result.procedural_analysis.issues.map((issue, i) => (
-                                                    <li key={i}><Typography variant="body2">{issue}</Typography></li>
+                                                    <li key={i} style={{ marginBottom: '8px' }}>
+                                                        <Typography variant="body2">{issue}</Typography>
+                                                        {resolvedItems[issue] ? (
+                                                            <Chip label="Fix Applied ✅" color="success" size="small" sx={{ mt: 1 }} />
+                                                        ) : (
+                                                            <>
+                                                                {issue.includes("Statutory Bar") && issue.includes("Negotiable Instruments") && (
+                                                                    <Button size="small" variant="outlined" color="error" onClick={() => handleFixIssue(issue)} sx={{ mt: 0.5, textTransform: 'none', bgcolor: 'white' }}>
+                                                                        Switch to Private Complaint (Section 200)
+                                                                    </Button>
+                                                                )}
+                                                                {issue.includes("Affidavit") && (
+                                                                    <Button size="small" variant="outlined" color="warning" onClick={() => handleFixIssue(issue)} sx={{ mt: 0.5, textTransform: 'none', bgcolor: 'white' }}>
+                                                                        Accompany with Affidavit
+                                                                    </Button>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </li>
                                                 ))}
                                             </ul>
                                         </Alert>
@@ -222,9 +303,44 @@ const PetitionDrafter: React.FC = () => {
                                             <Typography variant="subtitle2">Missing Mandatory Components:</Typography>
                                             <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
                                                 {result.procedural_analysis.missing_mandatory_components.map((item, i) => (
-                                                    <li key={i}><Typography variant="body2">{item}</Typography></li>
+                                                    <li key={i} style={{ marginBottom: '8px' }}>
+                                                        <Typography variant="body2">{item}</Typography>
+                                                        {(item.includes("Local Police") || item.includes("SP") || item.includes("DCP") || item.includes("Superior Officer")) && (
+                                                            resolvedItems[item] ? (
+                                                                <Chip label="Added to Story ✅" color="success" size="small" sx={{ mt: 1 }} />
+                                                            ) : (
+                                                                <Box sx={{ mt: 1, display: 'flex', gap: 1, alignItems: 'center' }}>
+                                                                    <TextField
+                                                                        size="small"
+                                                                        placeholder="Enter Date (e.g. 15th Jan 2024)"
+                                                                        variant="outlined"
+                                                                        sx={{ bgcolor: 'white', maxWidth: 250 }}
+                                                                        value={fixValues[item] || ''}
+                                                                        onChange={(e) => setFixValues(prev => ({ ...prev, [item]: e.target.value }))}
+                                                                    />
+                                                                    <Button
+                                                                        size="medium"
+                                                                        variant="contained"
+                                                                        color="primary"
+                                                                        onClick={() => handleApplyFix(item)}
+                                                                        disabled={!fixValues[item]}
+                                                                    >
+                                                                        Apply
+                                                                    </Button>
+                                                                </Box>
+                                                            )
+                                                        )}
+                                                    </li>
                                                 ))}
                                             </ul>
+                                        </Alert>
+                                    </Grid>
+                                )}
+
+                                {Object.keys(resolvedItems).length > 0 && (
+                                    <Grid size={12}>
+                                        <Alert severity="success" variant="filled" sx={{ mt: 2 }}>
+                                            Fixes applied! Please click "Generate Draft" above to re-validate and update the petition.
                                         </Alert>
                                     </Grid>
                                 )}
@@ -235,12 +351,110 @@ const PetitionDrafter: React.FC = () => {
                                             <Typography variant="subtitle2">Suggestions:</Typography>
                                             <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
                                                 {result.procedural_analysis.suggestions.map((suggestion, i) => (
-                                                    <li key={i}><Typography variant="body2">{suggestion}</Typography></li>
+                                                    <li key={i} style={{ marginBottom: '8px' }}>
+                                                        <Typography variant="body2">{suggestion}</Typography>
+                                                        {resolvedItems[suggestion] ? (
+                                                            <Chip label="Fix Applied ✅" color="success" size="small" sx={{ mt: 1 }} />
+                                                        ) : (
+                                                            <>
+                                                                {suggestion.includes("Affidavit") && (
+                                                                    <Button size="small" variant="outlined" color="info" onClick={() => handleFixIssue(suggestion)} sx={{ mt: 0.5, textTransform: 'none', bgcolor: 'white' }}>
+                                                                        Accompany with Affidavit
+                                                                    </Button>
+                                                                )}
+                                                                {(suggestion.includes("Private Complaint") || suggestion.includes("Section 200")) && (
+                                                                    <Button size="small" variant="outlined" color="info" onClick={() => handleFixIssue(suggestion)} sx={{ mt: 0.5, textTransform: 'none', bgcolor: 'white' }}>
+                                                                        Switch to Private Complaint
+                                                                    </Button>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </li>
                                                 ))}
                                             </ul>
                                         </Alert>
                                     </Grid>
                                 )}
+                            </Grid>
+                        </Paper>
+                    )}
+
+                    {/* Substantive Analysis (Senior Lawyer Review) */}
+                    {result.substantive_analysis && result.substantive_analysis.length > 0 && (
+                        <Paper
+                            variant="outlined"
+                            sx={{
+                                mb: 3,
+                                p: 2,
+                                borderColor: '#673ab7', // Deep Purple
+                                borderLeftWidth: 6,
+                                bgcolor: '#f3e5f5'
+                            }}
+                        >
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                                <Box>
+                                    <Typography variant="h6" display="flex" alignItems="center" gap={1} color="primary.dark">
+                                        <Psychology color="secondary" />
+                                        Case Strength Analysis
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        Identify missing legal ingredients that could weaken your case in court.
+                                    </Typography>
+                                </Box>
+                            </Box>
+
+                            <Grid container spacing={2}>
+                                {result.substantive_analysis.map((gap, i) => (
+                                    <Grid size={12} key={i}>
+                                        <Card variant="elevation" elevation={0} sx={{ bgcolor: 'white', border: '1px solid #e0e0e0' }}>
+                                            <CardContent>
+                                                <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                                                    <Chip label={gap.section} size="small" color="secondary" variant="outlined" />
+                                                    <Chip label={`Strength: ${gap.strength_score}/10`} size="small" color={gap.strength_score < 5 ? "error" : "warning"} />
+                                                </Box>
+
+                                                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                                                    Missing Ingredient: {gap.missing_ingredient}
+                                                </Typography>
+
+                                                <Typography variant="body1" sx={{ fontStyle: 'italic', mb: 2 }}>
+                                                    "{gap.question}"
+                                                </Typography>
+
+                                                {resolvedItems[gap.question] ? (
+                                                    <Chip label="Clarification Added ✅" color="success" size="small" />
+                                                ) : (
+                                                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                                                        <TextField
+                                                            fullWidth
+                                                            size="small"
+                                                            placeholder="Type your answer here..."
+                                                            multiline
+                                                            rows={2}
+                                                            value={substantiveAnswers[gap.question] || ''}
+                                                            onChange={(e) => setSubstantiveAnswers(prev => ({ ...prev, [gap.question]: e.target.value }))}
+                                                        />
+                                                        <Button
+                                                            variant="contained"
+                                                            color="secondary"
+                                                            onClick={() => handleApplySubstantiveFix(gap.question, gap.section)}
+                                                            disabled={!substantiveAnswers[gap.question]}
+                                                            sx={{ minWidth: 100, ml: 1 }}
+                                                        >
+                                                            Add
+                                                        </Button>
+                                                    </Box>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                    </Grid>
+                                ))}
+
+                                <Grid size={12}>
+                                    <Alert severity="info" variant="outlined" sx={{ bgcolor: 'white' }}>
+                                        Tip: Answering these questions helps prove the "Mens Rea" (Criminal Intent) required for a conviction.
+                                    </Alert>
+                                </Grid>
                             </Grid>
                         </Paper>
                     )}

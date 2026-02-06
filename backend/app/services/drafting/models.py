@@ -61,3 +61,10 @@ class DraftingResponse(BaseModel):
     citations: List[ValidatedCitation]
     validation_warnings: List[str] = []
     procedural_analysis: Optional[ProceduralAnalysis] = None
+    substantive_analysis: List['SubstantiveGap'] = []
+
+class SubstantiveGap(BaseModel):
+    section: str = Field(..., description="The legal section being analyzed (e.g. 'BNS 318')")
+    missing_ingredient: str = Field(..., description="The specific legal ingredient that is weak or missing")
+    question: str = Field(..., description="Clarifying question to ask the user")
+    strength_score: int = Field(..., description="0-10 score of how well this ingredient is currently established")
