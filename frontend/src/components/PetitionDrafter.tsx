@@ -62,6 +62,8 @@ const PetitionDrafter: React.FC = () => {
     const [fixValues, setFixValues] = useState<{ [key: string]: string }>({});
     const [substantiveAnswers, setSubstantiveAnswers] = useState<{ [key: string]: string }>({});
     const [resolvedItems, setResolvedItems] = useState<{ [key: string]: boolean }>({});
+    const [editableDraft, setEditableDraft] = useState<string>('');
+    const [isEditing, setIsEditing] = useState(false);
 
     const handleGenerate = async (overrideStory?: string, overrideType?: DocumentType) => {
         const storyToUse = overrideStory || userStory;
@@ -151,9 +153,17 @@ const PetitionDrafter: React.FC = () => {
         setResolvedItems(prev => ({ ...prev, [gapQuestion]: true }));
     };
 
-    const handleCopyDraft = () => {
+    // Update editableDraft whenever result changes
+    React.useEffect(() => {
         if (result?.draft_text) {
-            navigator.clipboard.writeText(result.draft_text);
+            setEditableDraft(result.draft_text);
+            setIsEditing(false); // Reset to read mode on new draft
+        }
+    }, [result]);
+
+    const handleCopyDraft = () => {
+        if (editableDraft) {
+            navigator.clipboard.writeText(editableDraft);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         }
@@ -473,23 +483,39 @@ const PetitionDrafter: React.FC = () => {
                     <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                             <Typography variant="h6">Generated Draft</Typography>
-                            <Tooltip title={copied ? "Copied!" : "Copy to clipboard"}>
-                                <IconButton onClick={handleCopyDraft} color={copied ? "success" : "primary"}>
-                                    {copied ? <CheckCircle /> : <ContentCopy />}
-                                </IconButton>
-                            </Tooltip>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Button
+                                    variant={isEditing ? "contained" : "outlined"}
+                                    size="small"
+                                    onClick={() => setIsEditing(!isEditing)}
+                                    sx={{ textTransform: 'none' }}
+                                >
+                                    {isEditing ? '💾 Save Changes' : '✏️ Edit Draft'}
+                                </Button>
+                                <Tooltip title={copied ? "Copied!" : "Copy to clipboard"}>
+                                    <IconButton onClick={handleCopyDraft} color={copied ? "success" : "primary"}>
+                                        {copied ? <CheckCircle /> : <ContentCopy />}
+                                    </IconButton>
+                                </Tooltip>
+                            </Box>
                         </Box>
                         <TextField
                             multiline
                             fullWidth
-                            value={result.draft_text}
+                            value={editableDraft}
+                            onChange={(e) => setEditableDraft(e.target.value)}
                             variant="outlined"
                             InputProps={{
-                                readOnly: true,
-                                sx: { fontFamily: 'monospace', fontSize: '0.9rem' }
+                                readOnly: !isEditing,
+                                sx: {
+                                    fontFamily: 'Georgia, serif',
+                                    fontSize: '0.95rem',
+                                    lineHeight: 1.7,
+                                    bgcolor: isEditing ? 'white' : '#f9f9f9'
+                                }
                             }}
-                            minRows={15}
-                            maxRows={25}
+                            minRows={10}
+                            maxRows={Infinity}
                         />
                     </Paper>
 
