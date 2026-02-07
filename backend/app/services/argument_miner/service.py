@@ -1,5 +1,6 @@
 from typing import Dict, Any
 import logging
+import asyncio
 
 from .retriever import retrieve_arguments
 from .normalizer import normalize_arguments
@@ -55,12 +56,22 @@ async def run_argument_miner(
         prosecution_args = args.get("prosecution", [])
         defense_args = args.get("defense", [])
 
-        # LLM-based validation (async filter)
+        # LLM-based validation (async parallel processing)
         async def filter_valid_arguments(arguments, context, role_name):
+            if not arguments:
+                return []
+            
+            # Validate all arguments in parallel
+            validation_tasks = [
+                validate_argument_with_llm(arg, context) 
+                for arg in arguments
+            ]
+            validation_results = await asyncio.gather(*validation_tasks)
+            
+            # Filter and log results
             results = []
-            for arg in arguments:
-                is_valid = await validate_argument_with_llm(arg, context)
-                print(f"[LLM VALIDATION][{role_name}] Argument: {arg[:100]}... => {'VALID' if is_valid else 'INVALID'}")
+            for arg, is_valid in zip(arguments, validation_results):
+                logger.info(f"[LLM VALIDATION][{role_name}] Argument: {arg[:100]}... => {'VALID' if is_valid else 'INVALID'}")
                 if is_valid:
                     results.append(arg)
             return results
@@ -74,13 +85,18 @@ async def run_argument_miner(
         reasoning = await evaluate_winner(prosecution_args, defense_args)
         confidence = compute_confidence(prosecution_args, defense_args)
 
+        # Get doc_url from miner result (available in both case and facts modes)
+        doc_url = args.get("doc_url")
+
         return {
             "prosecution_arguments": prosecution_args,
             "defense_arguments": defense_args,
             "winning_argument": {
                 "reasoning": reasoning,
                 "confidence": int(confidence)
-            }
+            },
+            "doc_url": doc_url,
+            "case_id": case_id if mode == "case" else None
         }
 
     except Exception as e:

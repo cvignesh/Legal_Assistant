@@ -29,8 +29,8 @@ def _filter_noise(arguments):
         r"\bno arguments found\b",
         r"\binsufficient legal\b",
         r"\bpetition is validly filed\b",
-        r"\bdismiss(ed)?\b"
-        r"\bpetition is liable\b"
+        r"\bdismiss(ed)?\b",
+        r"\bpetition is liable\b",
         r"\barticle\s*226\b",
         r"\bpetition should be dismissed\b",
     ]
@@ -46,37 +46,6 @@ def _filter_noise(arguments):
 
         if len(lower.split()) < 6:
             continue
-
-        if any(re.search(p, lower) for p in noise_patterns):
-            continue
-
-        filtered.append(arg.strip())
-
-    return filtered
-
-
-    if not arguments:
-        return []
-
-    noise_patterns = [
-        r"\bprays?\b",
-        r"\bseeks?\b",
-        r"\bwrit\b",
-        r"\bthis court\b",
-        r"\bit is seen\b",
-        r"\bit is evident\b",
-        r"\bafter considering\b",
-        r"\bdetention order was passed\b",
-    ]
-
-    filtered = []
-
-    for arg in arguments:
-
-        if not arg or len(arg.strip()) < 15:
-            continue
-
-        lower = arg.lower()
 
         if any(re.search(p, lower) for p in noise_patterns):
             continue
@@ -156,6 +125,13 @@ async def mine_arguments_from_facts(facts: str):
 
         logger.info(f"Retrieved {len(defense_chunks)} defense chunks")
 
+        # Extract doc_url from first chunk (if available)
+        doc_url = None
+        if prosecution_chunks and len(prosecution_chunks) > 0:
+            doc_url = prosecution_chunks[0].get("metadata", {}).get("doc_url")
+        elif defense_chunks and len(defense_chunks) > 0:
+            doc_url = defense_chunks[0].get("metadata", {}).get("doc_url")
+
         # ----------------------------------
         # Normalize FIRST (NO ROLE FILTER HERE)
         # ----------------------------------
@@ -198,8 +174,10 @@ async def mine_arguments_from_facts(facts: str):
         return {
             "prosecution": prosecution_args,
             "defense": defense_args,
+            "doc_url": doc_url,
         }
 
     except Exception as e:
         logger.error(f"Error mining arguments: {e}", exc_info=True)
-        return {"prosecution": [], "defense": []}
+        return {"prosecution": [], "defense": [], "doc_url": None}
+

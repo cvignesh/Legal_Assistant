@@ -19,3 +19,5 @@ class ArgumentMinerResponse(BaseModel):
     prosecution_arguments: List[str]
     defense_arguments: List[str]
     winning_argument: WinningArgument
+    doc_url: Optional[str] = None
+    case_id: Optional[str] = None

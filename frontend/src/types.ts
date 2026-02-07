@@ -59,4 +59,7 @@ export interface ArgumentMinerResponse {
         reasoning: string;
         confidence: number;
     };
+    doc_url?: string;
+    case_id?: string;
 }
+

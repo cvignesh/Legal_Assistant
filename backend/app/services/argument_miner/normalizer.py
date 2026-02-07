@@ -52,7 +52,7 @@ async def _normalize_single_chunk(chunk: Dict, index: int, semaphore: asyncio.Se
             return []
 
         logger.info(f"Normalizing chunk {index}")
-        print(f"\n[NORMALIZER] Chunk {index} input (first 250 chars):\n{content[:250]}")
+        logger.debug(f"[NORMALIZER] Chunk {index} input (first 250 chars): {content[:250]}")
 
         for attempt in range(MAX_RETRIES + 1):
             try:
@@ -60,7 +60,7 @@ async def _normalize_single_chunk(chunk: Dict, index: int, semaphore: asyncio.Se
                     NORMALIZATION_PROMPT.format(content=content.strip())
                 )
 
-                print(f"\n[NORMALIZER] Chunk {index} output:\n{response[:250]}")
+                logger.debug(f"[NORMALIZER] Chunk {index} output: {response[:250]}")
 
                 arguments = [
                     line.strip("-• ").strip()
