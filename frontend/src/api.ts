@@ -64,6 +64,27 @@ export const viabilityAPI = {
     }
 };
 
+// Argument Miner API
+export async function runArgumentMiner(payload: {
+    mode: "case" | "facts";
+    case_id?: string;
+    facts?: string;
+}) {
+    const res = await fetch("/api/argument-miner", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+        throw new Error("Argument Miner failed");
+    }
+
+    return res.json();
+}
+
 // Drafting API
 export const draftingAPI = {
     generateDraft: async (userStory: string, documentType: string) => {

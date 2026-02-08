@@ -52,6 +52,17 @@ export interface PredictionResult {
     strategic_advice: string;
 }
 
+export interface ArgumentMinerResponse {
+    prosecution_arguments: string[];
+    defense_arguments: string[];
+    winning_argument: {
+        reasoning: string;
+        confidence: number;
+    };
+    doc_url?: string;
+    case_id?: string;
+}
+
 // Petition Drafting Types
 export type DocumentType = 'police_complaint' | 'magistrate_156_3' | 'private_complaint_200' | 'legal_notice';
 

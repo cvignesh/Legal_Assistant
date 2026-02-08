@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from app.api.routes.argument_miner import router as argument_miner_router
 from app.core.config import settings
 from app.db.mongo import mongo
 import logging
@@ -52,6 +52,10 @@ app.include_router(search.router, prefix="/api", tags=["Search"])
 app.include_router(chat.router, prefix="/api", tags=["Chat"])
 from app.api.routes import viability
 app.include_router(viability.router, prefix="/api/viability", tags=["Viability"])
+app.include_router(
+    argument_miner_router,
+    prefix="/api"
+)
 from app.api.routes import drafting
 app.include_router(drafting.router, prefix="/api/drafting", tags=["Drafting"])
 

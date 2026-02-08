@@ -61,6 +61,7 @@ class JudgmentMetadata(BaseModel):
     case_title: Optional[str] = Field(None, description="Full case title")
     court_name: Optional[str] = Field(None, description="Name of the court")
     case_number: Optional[str] = Field(None, description="Case number (e.g. HCP No 123/2019)")
+    case_id: Optional[str] = Field(None, description="Normalized case identifier (alias for case_number)")
     city: Optional[str] = Field(None, description="City where court is located")
     year_of_judgment: Optional[int] = Field(None, description="Year judgment was delivered")
     doc_url: Optional[str] = Field(None, description="URL to original document (e.g. Indian Kanoon)")
