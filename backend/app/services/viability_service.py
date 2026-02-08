@@ -7,7 +7,7 @@ import asyncio
 import json
 from pydantic import BaseModel, Field
 
-from langchain.schema import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 
@@ -262,7 +262,8 @@ class ViabilityService:
                  "year": r.metadata.get("year_of_judgment", ""),
                  "outcome": r.metadata.get("outcome", "Unknown"),
                  "score": r.score,
-                 "snippet": r.text_for_embedding[:300] + "..."
+                 "snippet": r.text_for_embedding[:300] + "...",
+                 "pdf_url": r.metadata.get("doc_url", "")
              })
 
         return PredictionResult(

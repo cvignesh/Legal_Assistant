@@ -56,4 +56,6 @@ app.include_router(
     argument_miner_router,
     prefix="/api"
 )
+from app.api.routes import drafting
+app.include_router(drafting.router, prefix="/api/drafting", tags=["Drafting"])
 

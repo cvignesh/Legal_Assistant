@@ -26,7 +26,20 @@ interface Message {
     timestamp: Date;
 }
 
+const formatMessage = (text: string) => {
+    if (!text) return text;
+    // Split by **bold** text
+    const parts = text.split(/(\*\*[^\*]+\*\*)/g);
+    return parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={i}>{part.slice(2, -2)}</strong>;
+        }
+        return <span key={i}>{part}</span>;
+    });
+};
+
 const ChatAssistantPage: React.FC = () => {
+    // ...
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -250,7 +263,7 @@ const ChatAssistantPage: React.FC = () => {
                                         borderRadius: 2,
                                     }}
                                 >
-                                    <Typography variant="body1">{msg.content}</Typography>
+                                    <Typography variant="body1">{formatMessage(msg.content)}</Typography>
                                 </Paper>
                             </Box>
                         ) : (
@@ -265,7 +278,7 @@ const ChatAssistantPage: React.FC = () => {
                                     }}
                                 >
                                     <Typography variant="body1" sx={{ mb: 1, whiteSpace: 'pre-wrap' }}>
-                                        {msg.content}
+                                        {formatMessage(msg.content)}
                                     </Typography>
 
                                     {/* Guardrails Badges */}

@@ -30,7 +30,7 @@ from app.services.parser.utils import extract_text_from_pdf, detect_document_typ
 
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
-from langchain.schema import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage, HumanMessage
 
 from app.core.config import settings
 from app.services.judgment.models import (

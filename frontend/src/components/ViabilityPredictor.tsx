@@ -198,12 +198,26 @@ const ViabilityPredictor: React.FC = () => {
                             <Grid item xs={12} md={6} key={index}>
                                 <Card variant="outlined" sx={{ height: '100%' }}>
                                     <CardContent>
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                            <Chip
-                                                label={precedent.outcome}
-                                                color={getOutcomeColor(precedent.outcome) as any}
-                                                size="small"
-                                            />
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, alignItems: 'center' }}>
+                                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                                                <Chip
+                                                    label={precedent.outcome}
+                                                    color={getOutcomeColor(precedent.outcome) as any}
+                                                    size="small"
+                                                />
+                                                {precedent.pdf_url && (
+                                                    <Button
+                                                        size="small"
+                                                        variant="text"
+                                                        color="primary"
+                                                        target="_blank"
+                                                        href={precedent.pdf_url}
+                                                        sx={{ textTransform: 'none', padding: 0, minWidth: 'auto' }}
+                                                    >
+                                                        View Judgement PDF
+                                                    </Button>
+                                                )}
+                                            </Box>
                                             <Typography variant="caption" color="text.secondary">
                                                 Sim: {(precedent.score * 100).toFixed(0)}%
                                             </Typography>
@@ -218,6 +232,8 @@ const ViabilityPredictor: React.FC = () => {
                                         <Typography variant="body2" sx={{ fontStyle: 'italic', bgcolor: '#f9f9f9', p: 1, borderRadius: 1 }}>
                                             "{precedent.snippet}"
                                         </Typography>
+
+
                                     </CardContent>
                                 </Card>
                             </Grid>

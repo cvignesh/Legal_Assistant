@@ -5,6 +5,7 @@ import ChatBot from './components/ChatBot';
 import ViabilityPredictor from './components/ViabilityPredictor';
 import ArgumentMiner from "./components/ArgumentMiner";
 import ChatAssistantPage from './components/ChatAssistantPage';
+import PetitionDrafter from './components/PetitionDrafter';
 
 const theme = createTheme({
     palette: {
@@ -59,6 +60,7 @@ function App() {
                         <Tab label="Chat Assistant" />
                         <Tab label="Viability Predictor" />
                         <Tab label="Argument Miner" />
+                        <Tab label="Petition Drafter" />
                     </Tabs>
                 </AppBar>
 
@@ -75,11 +77,14 @@ function App() {
                     <TabPanel value={value} index={3}>
                         <ArgumentMiner />
                     </TabPanel>
-                </Container>
+                    <TabPanel value={value} index={4}>
+                        <PetitionDrafter />
+                    </TabPanel>
+                </Container >
                 {/* Global Floating ChatBot */}
-                <ChatBot />
-            </Box>
-        </ThemeProvider>
+                < ChatBot />
+            </Box >
+        </ThemeProvider >
     );
 }
 
